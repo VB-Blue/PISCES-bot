@@ -1,0 +1,12 @@
+node_modules/
+dist/
+release/
+output/
+.playwright-cli/
+*.log
+
+tests/fixtures/*.exe
+.env
+.env.*
+.DS_Store
+Thumbs.db

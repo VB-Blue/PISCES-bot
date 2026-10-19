@@ -1,0 +1,15 @@
+.runtime-status { position: relative; display: flex; align-items: center; min-width: 0; }
+.runtime-status > .presence-sidebar-state { flex: 1; min-width: 0; font-size: 11px; }
+.runtime-menu > summary { display: grid; place-items: center; width: 26px; height: 26px; cursor: pointer; color: var(--muted); border-radius: 5px; list-style: none; }
+.runtime-menu > summary::-webkit-details-marker { display: none; }
+.runtime-menu[open] > summary { color: var(--accent); background: var(--accent-soft); }
+.runtime-menu > div { position: absolute; bottom: 36px; left: 0; width: 260px; padding: 12px; z-index: 30; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; box-shadow: 0 8px 30px #0002; }
+.runtime-menu p { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 0 0 9px; }
+.runtime-menu p[role=alert] { color: var(--red); margin: 9px 0 0; }
+.runtime-menu button { display: flex; align-items: center; gap: 9px; font-size: 12px; width: 100%; padding: 9px 8px; text-align: left; border-radius: 5px; color: var(--text); }
+.runtime-menu button:hover { background: var(--active); }.runtime-menu button:disabled { opacity: .5; }
+.runtime-menu summary:focus-visible, .runtime-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.runtime-recovery { display: flex; gap: 12px; padding: 18px; color: var(--muted); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; }
+.runtime-recovery > svg { flex: none; margin-top: 2px; }
+.runtime-recovery b { color: var(--text); font-size: 13px; }
+.runtime-recovery p { font-size: 12px; line-height: 1.7; margin: 6px 0 14px; overflow-wrap: anywhere; }

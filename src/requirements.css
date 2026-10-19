@@ -1,0 +1,16 @@
+.requirement-memory { margin: 0 0 28px; }
+.requirement-editor, .requirement-card, .requirement-checks { border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 12px 0; }
+.requirement-editor label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+.requirement-editor textarea, .requirement-editor input, .requirement-editor select { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; color: inherit; background: var(--surface, transparent); font: inherit; }
+.requirement-editor textarea { resize: vertical; line-height: 1.6; }
+.requirement-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.requirement-actions, .requirement-card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.requirement-actions { margin-top: 12px; }
+.requirement-card-head { justify-content: space-between; }
+.requirement-original, .requirement-checks li p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.requirement-checks summary { cursor: pointer; font-size: 13px; }
+.requirement-checks ol { padding-left: 24px; }
+.requirement-checks li { margin: 18px 0; }
+.requirement-checks li[data-status="failed"] strong, .requirement-checks li[data-status="unknown"] strong { color: var(--danger, #ba4b3a); }
+.requirement-checks small { overflow-wrap: anywhere; }
+.requirement-checks blockquote { margin: 8px 0; padding-left: 12px; border-left: 2px solid var(--border); }

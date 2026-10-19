@@ -1,0 +1,67 @@
+.long-goals-page, .usage-page { width: 100%; max-width: 1280px; margin: 0 auto; padding: 30px 36px 64px; }
+.long-goals-page .presence-page-heading, .usage-page .presence-page-heading { margin-bottom: 26px; }
+.goal-subtle { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.goal-notice { padding: 12px 15px; border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); background: var(--subtle); border-radius: 7px; font-size: 13px; overflow-wrap: anywhere; }
+.long-goal-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; min-height: 420px; }
+.long-goal-list { border-right: 1px solid var(--border); padding-right: 18px; display: flex; flex-direction: column; gap: 6px; }
+.long-goal-list > button { display: flex; gap: 10px; padding: 13px 11px; text-align: left; border-radius: 8px; min-width: 0; }
+.long-goal-list > button:hover, .long-goal-list > button[aria-current] { background: var(--subtle); }
+.long-goal-list b { display: block; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.long-goal-list small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+.goal-status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; margin-top: 7px; background: var(--muted); }
+.goal-status-dot.active, .goal-status-dot.reviewing { background: var(--accent); }
+.goal-status-dot.attention, .goal-status-dot.budget { background: var(--red); }
+.goal-detail-heading, .goal-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.goal-detail-heading { justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.goal-state { color: var(--muted); font-size: 12px; font-weight: 600; }
+.goal-state.active, .goal-state.reviewing { color: var(--accent); }
+.goal-state.budget, .goal-state.attention { color: var(--red); }
+.long-goal-detail h2 { margin: 0 0 12px; font-size: 23px; letter-spacing: -.025em; }
+.goal-objective { font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.goal-current { margin: 28px 0 20px; border-top: 1px solid var(--border); }
+.goal-current > div { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.goal-current dt { font-size: 12px; color: var(--muted); padding-top: 2px; }
+.goal-current dd { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.goal-current dd button, .goal-history header button { color: var(--accent); font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+.goal-current dd button { margin-left: auto; }
+.goal-section-title { font-size: 14px; margin: 30px 0 13px; font-weight: 600; }
+.goal-history { list-style: none; padding: 0; margin: 0; }
+.goal-history li { border-top: 1px solid var(--border); padding: 18px 0; }
+.goal-history header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; }
+.goal-history time { color: var(--muted); }
+.goal-history header button { margin-left: auto; }
+.goal-history p, .goal-conditions p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 13px; }
+.goal-history summary, .goal-conditions summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+.goal-conditions { margin-top: 24px; }
+.long-goal-editor { max-width: 890px; display: flex; flex-direction: column; gap: 20px; }
+.long-goal-editor label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.long-goal-editor textarea, .long-goal-editor input, .usage-budget input { width: 100%; background: var(--surface); border: 1px solid var(--border-strong); padding: 10px 12px; resize: vertical; line-height: 1.65; }
+.goal-editor-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.goal-editor-numbers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.long-goal-editor > .goal-actions { justify-content: flex-end; }
+.long-goal-empty { min-height: 400px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 14px; max-width: 620px; }
+.long-goal-empty > svg { color: var(--muted); }
+.long-goal-empty h2 { margin: 0; font-size: 23px; }
+.long-goal-empty p { margin: 0 0 8px; color: var(--muted); line-height: 1.8; }
+.goal-empty-inline { padding: 20px 0; color: var(--muted); font-size: 13px; }
+.usage-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding: 20px 0 30px; border-bottom: 1px solid var(--border); margin: 0 0 25px; }
+.usage-metrics dt { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.usage-metrics dd { margin: 0; font-variant-numeric: tabular-nums; font-size: 27px; font-weight: 600; letter-spacing: -.04em; }
+.usage-metrics small { font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+.usage-budget { display: flex; align-items: flex-start; gap: 14px; padding: 6px 0 18px; }
+.usage-budget > svg { margin-top: 4px; color: var(--accent); flex: 0 0 22px; }
+.usage-budget h2 { margin: 0 0 7px; font-size: 15px; }
+.usage-budget p { color: var(--muted); margin: 4px 0; font-size: 12px; line-height: 1.7; }
+.usage-budget form { display: flex; gap: 8px; margin-left: auto; min-width: 265px; }
+.usage-budget form label { flex: 1; min-width: 0; }
+.usage-budget input { min-width: 0; }
+.usage-table { overflow-x: auto; border-top: 1px solid var(--border); }
+.usage-table table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.usage-table th { color: var(--muted); font-weight: 500; }
+.usage-table th, .usage-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+.usage-table td { font-variant-numeric: tabular-nums; max-width: 220px; overflow-wrap: anywhere; }
+.usage-role { display: block; color: var(--muted); margin-top: 3px; }
+.usage-budget .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.usage-table th:first-child, .usage-table td:first-child { padding-left: 0; white-space: nowrap; }
+@media (max-width: 1120px) { .long-goal-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; } .long-goals-page, .usage-page { padding: 24px; } .usage-budget { flex-wrap: wrap; } .usage-budget form { margin-left: 36px; } }
+@media (max-width: 780px) { .long-goal-layout { grid-template-columns: minmax(0, 1fr); } .long-goal-list { border-right: 0; border-bottom: 1px solid var(--border); padding: 0 0 14px; } .goal-editor-columns, .goal-editor-numbers { grid-template-columns: minmax(0, 1fr); } .usage-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .usage-budget form { width: 100%; margin-left: 0; } .long-goals-page, .usage-page { padding: 20px 16px; } }

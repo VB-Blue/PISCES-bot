@@ -1,0 +1,48 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+async function run(window, { appPath }) {
+  const evaluate = code => window.webContents.executeJavaScript(code);
+  const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const wait = async (read, label) => { for (let i = 0; i < 450; i++) { const value = await read(); if (value) return value; await pause(100); } throw new Error('启动验收超时：' + label); };
+  const status = () => evaluate('window.memoryDesktop.runtimeStatus()');
+  await wait(() => evaluate('!!window.memoryDesktop?.runtimeStatus'), '界面接口');
+  const initial = await wait(async () => { const state = await status(); return state.online && state.ready ? state : null; }, '首次启动自动拉起后台');
+  const job = await evaluate(`window.memoryDesktop.createJob(${JSON.stringify({ goal: '保持暂停的启动验收任务，不调用模型', runAt: Date.now() + 3600000 })})`);
+  await evaluate(`window.memoryDesktop.jobAction(${JSON.stringify({ id: job.id, action: 'pause' })})`);
+  await evaluate('window.memoryDesktop.stopRuntime()');
+  await wait(async () => !(await status()).online, '后台停止');
+  await evaluate("[...document.querySelectorAll('button')].find(item=>item.textContent.trim()==='设置').click()");
+  await wait(() => evaluate('!!document.querySelector("#settings-nav-abilities")'), '设置窗口');
+  await evaluate('document.querySelector("#settings-nav-abilities").click()');
+  await wait(() => evaluate('!!document.querySelector(".settings-modal .runtime-recovery button")'), '设置页恢复入口');
+  assert.equal(await evaluate('document.querySelector(".settings-modal .settings-body").textContent.includes("正在读取…")'), false);
+  assert.equal((await status()).online, false, 'opening settings must respect an explicit stop');
+  await pause(200);
+  await fs.writeFile(path.join(appPath, 'settings-stopped.png'), (await window.webContents.capturePage()).toPNG());
+  await evaluate('document.querySelector(".settings-modal .runtime-recovery button").click()');
+  await wait(() => evaluate('document.querySelectorAll(".settings-modal .capability-row").length >= 7'), '设置内启动并自动读取能力');
+  const restarted = await status(); assert.equal(restarted.ready, true); assert.notEqual(restarted.pid, initial.pid);
+  assert.equal(await evaluate('!!document.querySelector(".settings-modal .form-error")'), false);
+  await evaluate('window.memoryDesktop.stopRuntime()');
+  await wait(async () => !(await status()).online, '再次停止');
+  // Native single-instance delivery: opening the executable again must restart the stopped owner's background.
+  const args = require('electron').app.isPackaged ? ['--lifecycle-smoke'] : [require('electron').app.getAppPath(), '--lifecycle-smoke'];
+  const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+  const child = spawn(process.execPath, args, { env, windowsHide: true, stdio: 'ignore' });
+  const code = await new Promise((resolve, reject) => { const timer = setTimeout(() => { child.kill(); reject(new Error('第二次启动没有退出重复界面进程')); }, 20000); child.once('error', error => { clearTimeout(timer); reject(error); }); child.once('exit', value => { clearTimeout(timer); resolve(value); }); });
+  assert.equal(code, 0);
+  const reopened = await wait(async () => { const state = await status(); return state.online && state.ready ? state : null; }, '重复打开自动启动后台');
+  assert.notEqual(reopened.pid, restarted.pid);
+  await wait(() => evaluate('document.querySelectorAll(".settings-modal .capability-row").length >= 7'), '重开后设置自动刷新');
+  const preserved = await evaluate(`window.memoryDesktop.jobs().then(items => items.find(item => item.id === ${JSON.stringify(job.id)}))`);
+  assert.equal(preserved.status, 'paused'); assert.equal(preserved.runs, 0);
+  await pause(200);
+  await fs.writeFile(path.join(appPath, 'settings-reopened.png'), (await window.webContents.capturePage()).toPNG());
+  const result = { passed: true, initialAutoStart: true, settingsRecovery: true, secondInstanceRestartsBackground: true, deliberatelyStoppedStaysStoppedUntilRequested: true, pausedTaskPreserved: true, pids: [initial.pid, restarted.pid, reopened.pid], noModelRequests: true };
+  await fs.writeFile(path.join(appPath, 'lifecycle-result.json'), JSON.stringify(result, null, 2));
+  await evaluate('window.memoryDesktop.stopRuntime()');
+  return { lifecycleSmoke: 'passed', ...result };
+}
+module.exports = { run };

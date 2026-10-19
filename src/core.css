@@ -1,0 +1,29 @@
+.core-receipt { margin: 14px 0; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+.core-receipt summary { cursor: pointer; display: flex; align-items: center; gap: 8px; list-style: none; }
+.core-receipt summary > span { flex: 1; }
+.core-receipt p { color: var(--muted); line-height: 1.7; }
+.core-receipt small { color: var(--muted); overflow-wrap: anywhere; }
+.core-receipt .message-text { margin-top: 14px; }
+.core-receipt pre { max-height: 320px; overflow: auto; }
+.desktop-task-form { border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin: 24px 0; }
+.desktop-task-form label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+.desktop-task-form textarea { width: 100%; min-height: 100px; resize: vertical; border: 1px solid var(--border); background: transparent; color: inherit; border-radius: 10px; padding: 14px; font: inherit; }
+.desktop-task-form p { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 12px 0 18px; }
+.desktop-task-form > div { display: flex; gap: 10px; }
+.assistant-panel { margin: 20px 0 32px; padding: 24px; border: 1px solid var(--border); border-radius: 14px; }
+.assistant-panel > p, .panel-empty { color: var(--muted); line-height: 1.7; font-size: 13px; }
+.panel-empty { padding: 22px 0; }
+.work-card, .method-card { margin: 14px 0; padding: 18px; border: 1px solid var(--border); border-radius: 10px; }
+.work-card summary, .method-card > div, .work-call { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.work-card summary { cursor: pointer; }
+.work-meta, .work-call, .method-card p { font-size: 12px; color: var(--muted); margin: 14px 0; }
+.worker-roles { display: flex; gap: 8px; }
+.worker-roles span { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 5px 9px; font-size: 12px; }
+.tool-feedback { padding: 12px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.tool-feedback > span { margin-left: 12px; }
+.method-card code { display: block; font-size: 12px; margin-bottom: 18px; overflow-wrap: anywhere; }
+.profile-form label { display: grid; gap: 8px; margin: 18px 0; font-size: 13px; }
+.profile-form textarea { resize: vertical; background: transparent; color: inherit; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; line-height: 1.6; }
+.profile-identity { overflow-wrap: anywhere; font-family: monospace; }
+.profile-actions { display: flex; gap: 12px; }
+.multi-worker-toggle { display: flex; gap: 6px; align-items: center; font-size: 11px; }

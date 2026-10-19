@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const asar = require('@electron/asar');
+const root = path.resolve(__dirname, '..');
+const expectedVersion = require('../package.json').version;
+const archive = path.join(root, 'release', `pisces-ai-v${expectedVersion}`, 'win-unpacked', 'resources', 'app.asar');
+const runtime = ['main.cjs', 'preload.cjs', 'router.cjs', 'providers.cjs', 'assistant-worker.cjs', 'learner.cjs', 'service-limiter.cjs', 'conversation-runs.cjs', 'concurrency-smoke.cjs', 'ui-smoke.cjs', 'workspace-smoke.cjs', 'capture-surface.cjs'];
+const version = JSON.parse(asar.extractFile(archive, 'package.json')).version;
+assert.equal(version, expectedVersion);
+const assets = fs.readdirSync(path.join(root, 'dist', 'assets')).filter(name => /\.(?:css|js)$/.test(name));
+const files = [...runtime.map(name => path.join('electron', name)), ...assets.map(name => path.join('dist', 'assets', name))];
+for (const file of files) assert.ok(asar.extractFile(archive, path.normalize(file)).equals(fs.readFileSync(path.join(root,file))), '安装包与最终源码一致：'+file);
+const result = {version, runtimeFiles:runtime.length, compiledAssets:assets.length, byteIdentical:true};
+fs.writeFileSync(path.join(root, 'output', 'macos-package-verified.json'), JSON.stringify(result,null,2));
+console.log(JSON.stringify(result));
