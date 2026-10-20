@@ -1,7 +1,7 @@
 import { t } from './i18n'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowClockwise, CheckCircle, Plus, Star, Trash, WarningCircle } from '@phosphor-icons/react'
-import type { AgentRole, ProviderDraft, ProviderStore, Strength } from './types'
+import type { AgentRole, ProviderDraft, ProviderInsight, ProviderStore, ServiceHealth, Strength } from './types'
 import { Badge, Toggle, cleanError } from './ui'
 
 const presets = [
@@ -53,6 +53,15 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
     const timer = setTimeout(() => { void loadModels() }, 700)
     return () => clearTimeout(timer)
   }, [current?.id, current?.endpoint, current?.apiKey, canList])
+  // What automatic routing assumes about this service, and how it has been doing lately.
+  const [insight, setInsight] = useState<ProviderInsight | null>(null)
+  useEffect(() => {
+    if (!current || !window.memoryDesktop?.providerInsight) return
+    const timer = setTimeout(() => { window.memoryDesktop!.providerInsight!(form.profiles.map(item => ({ id: item.id, model: item.model, endpoint: item.endpoint }))).then(setInsight).catch(() => setInsight(null)) }, 300)
+    return () => clearTimeout(timer)
+  }, [current?.id, current?.model, current?.endpoint])
+  const inferred = current ? insight?.inferred[current.id] || [] : []
+  const health = current ? insight?.health[current.id] : undefined
   const shownModels = useMemo(() => models.filter(item => !filter.trim() || item.toLowerCase().includes(filter.trim().toLowerCase())).slice(0, 200), [models, filter])
   const names = useMemo(() => form.profiles.map(item => item.name), [form.profiles])
 
@@ -117,6 +126,8 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
         <span>{t("擅长（帮助自动分配）")}</span>
         {(Object.keys(strengthLabels) as Strength[]).map(tag => <button type="button" key={tag} aria-pressed={current.strengths.includes(tag)} className={current.strengths.includes(tag) ? 'on' : ''} onClick={() => toggleStrength(tag)}>{t(strengthLabels[tag])}</button>)}
       </div>
+      {current.strengths.length === 0 && inferred.length > 0 && <p className="field-note">{t("没有勾选时，按模型名自动识别为：")}{inferred.map(tag => t(strengthLabels[tag])).join('、')}</p>}
+      {health && insight && <p className="field-note">{healthText(health, insight.now)}</p>}
       <label>{t("备注（会告诉主代理，帮助它分配任务）")}<input value={current.note} onChange={event => patch({ note: event.target.value })} placeholder={t("例如：中文写作好，价格低，限流较严")} autoComplete="off" /></label>
       <div className="settings-grid">
         <label>{t("此 API 的最大并发数")}<input inputMode="numeric" value={current.maxConcurrent} onChange={event => patch({ maxConcurrent: Math.max(1, Math.min(8, Number(event.target.value.replace(/[^0-9]/g, '')) || 1)) })} /></label>
@@ -135,6 +146,7 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
     {form.profiles.length > 0 && <div className="provider-routing">
       <div className="settings-title"><h3>{t("任务分配")}</h3><Badge>{t("自动分配")}</Badge></div>
       <p className="field-note">{t("对话、后台任务和子代理都会按任务能力选择服务：代码交给擅长代码的，看图交给能看图的，写作和复核交给强推理的，查资料交给速度快的。没有匹配时使用默认服务。下表可指定各类任务使用的服务，对话中也可手动选择。")}</p>
+      <p className="field-note">{t("自动分配还会看实际情况：最近连续失败的服务暂时避开，默认服务忙时分流给其他服务；没勾选擅长时，按模型名自动识别它擅长什么。")}</p>
       <div className="route-table">
         {roleRows.map(row => <div className="route-row" key={row.role}>
           <div><b>{t(row.title)}</b><small>{t(row.text)}</small></div>
@@ -147,4 +159,9 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
       <div className="capability-row plain"><div><b>{t("出错时自动切换服务")}</b><p>{t("当前服务欠费、限流、断网或密钥失效时，同一次任务换用下一个服务继续，并在步骤里提示。控制软件的任务始终只用你授权的那一个服务。")}</p></div><Toggle checked={form.failover} label={t("出错时自动切换服务")} onChange={() => setForm({ ...form, failover: !form.failover })} /></div>
     </div>}
   </div>
+}
+
+function healthText(health: ServiceHealth, now: number) {
+  if (health.coolingUntil > now) return t("最近连续失败 {p0} 次，自动分配暂时避开它，{p1} 后再试", { p0: health.consecutiveFailures, p1: new Date(health.coolingUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+  return t("最近 {p0} 次调用成功 {p1} 次", { p0: health.calls, p1: health.ok }) + (health.medianMs ? t("，一般 {p0} 秒完成", { p0: Math.round(health.medianMs / 100) / 10 }) : '')
 }

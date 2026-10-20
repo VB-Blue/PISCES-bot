@@ -128,6 +128,7 @@ contextBridge.exposeInMainWorld('memoryDesktop', {
   pickFolder: () => ipcRenderer.invoke('prefs:add-root'),
   testAI: value => ipcRenderer.invoke('ai:test', value),
   listModels: value => ipcRenderer.invoke('ai:models', value),
+  providerInsight: items => ipcRenderer.invoke('providers:insight', items),
   loadWorkspace: () => ipcRenderer.sendSync('workspace:load'),
   saveWorkspace: json => ipcRenderer.send('workspace:save', json),
   saveWorkspaceSync: json => ipcRenderer.sendSync('workspace:save-sync', json),

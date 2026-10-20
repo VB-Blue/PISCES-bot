@@ -23,6 +23,27 @@ function isTransient(error) {
   return /fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|socket|terminated|AI 回复未完成|AI 响应格式不兼容/i.test(text);
 }
 
+// What a service is probably good at, read from its model name. Used only when the user tagged nothing.
+function inferStrengths(model = '', endpoint = '') {
+  const tokens = String(model).toLowerCase().split(/[^a-z0-9.]+/).filter(Boolean);
+  const any = (...words) => tokens.some(token => words.some(word => word instanceof RegExp ? word.test(token) : token === word));
+  const out = new Set();
+  if (any('flash', 'mini', 'lite', 'turbo', 'haiku', 'instant', 'air', 'nano', 'small', 'speed', /^\d{1,2}b$/)) { out.add('fast'); out.add('cheap'); }
+  if (any('deepseek', 'glm', /^qwen/)) out.add('cheap');
+  if (any('vl', 'vision', '4o', 'gemini', 'claude', 'pixtral', 'llava', /^glm-?4\.?\dv$/, /^gpt-?(4\.1|5)/, /^qwen\d?(\.\d)?-?vl/)) out.add('vision');
+  if (any('coder', 'code', 'codestral', 'devstral', 'deepseek', 'claude', /coder$/)) out.add('code');
+  if (any('pro', 'opus', 'ultra', 'large', 'r1', 'reasoner', 'thinking', 'o1', 'o3', 'o4', 'sonnet', 'k2', 'plus', /^gpt-?5/) && !out.has('fast')) out.add('strong');
+  if (any('kimi', 'moonshot', 'minimax', 'gemini', 'claude', 'long', /^\d+k$/, '1m') || /qwen-?long/.test(String(model).toLowerCase())) out.add('long');
+  if (/^https?:\/\/(127\.0\.0\.1|localhost)/i.test(endpoint)) out.add('cheap');
+  return [...out];
+}
+const strengthsOf = profile => profile.strengths?.length ? profile.strengths : inferStrengths(profile.settings?.model || profile.model, profile.settings?.endpoint || profile.endpoint);
+
+// How a service is doing right now, from the usage ledger: { calls, ok, consecutiveFailures, coolingUntil, medianMs }.
+const healthOf = (store, profile) => store.health?.[profile.id] || null;
+const cooling = (store, profile, now = Date.now()) => (healthOf(store, profile)?.coolingUntil || 0) > now;
+const busy = (store, profile) => { const load = store.load?.(profile.id); return !!load && load.active >= (profile.maxConcurrent || 2); };
+
 const byName = (profiles, name) => {
   const wanted = String(name || '').trim().toLowerCase();
   return wanted ? profiles.find(item => item.id === name || item.name.toLowerCase() === wanted) : undefined;
@@ -37,22 +58,39 @@ function plan(store, request = {}) {
   if (!profiles.length) return null;
   const def = profiles.find(item => item.id === store.defaultId) || profiles[0];
   const needsVision = (request.capabilities || []).some(item => item === 'desktop' || item === 'vision');
-  const has = (profile, tag) => profile.strengths.includes(tag);
+  const has = (profile, tag) => strengthsOf(profile).includes(tag);
+  const now = Date.now();
+  // Automatic choice weighs fit for the task, recent reliability, speed when speed matters, and whether the
+  // service is already saturated. The user's default wins only when the rest is equal.
+  const fastest = Math.min(...profiles.map(item => healthOf(store, item)?.medianMs || Infinity));
+  const score = item => {
+    const health = healthOf(store, item);
+    const reliability = health?.calls ? (health.ok + 1) / (health.calls + 2) : 0.75;
+    const speed = request.prefer === 'fast' && health?.medianMs && Number.isFinite(fastest) ? fastest / health.medianMs : 0;
+    return (request.prefer && has(item, request.prefer) ? 3 : 0) + (item.id === def.id ? 0.3 : 0) + reliability * 2 + speed * 0.8
+      - (cooling(store, item, now) ? 10 : 0) - (busy(store, item) ? 1.5 : 0);
+  };
+  const ranked = list => list.map((item, index) => ({ item, index, value: score(item) })).sort((a, b) => b.value - a.value || a.index - b.index).map(entry => entry.item);
   let primary, reason, warning = '';
   const explicit = byName(profiles, request.profile);
   if (request.profile && !explicit) warning = '没有名为「' + request.profile + '」的服务，已自动分配';
   const routed = request.role && store.routes?.[request.role] ? profiles.find(item => item.id === store.routes[request.role]) : undefined;
   if (explicit) { primary = explicit; reason = '指定'; }
   else if (routed) { primary = routed; reason = '角色设定'; }
-  else if (needsVision && profiles.some(item => has(item, 'vision'))) { primary = has(def, 'vision') ? def : profiles.find(item => has(item, 'vision')); reason = '需要看屏幕'; }
-  else if (request.prefer && profiles.some(item => has(item, request.prefer))) { primary = has(def, request.prefer) ? def : profiles.find(item => has(item, request.prefer)); reason = '擅长 ' + request.prefer; }
-  else { primary = def; reason = '默认'; }
+  else {
+    const eligible = needsVision && profiles.some(item => has(item, 'vision')) ? profiles.filter(item => has(item, 'vision')) : profiles;
+    primary = ranked(eligible)[0];
+    const fits = request.prefer && has(primary, request.prefer);
+    if (needsVision && has(primary, 'vision')) reason = '需要看屏幕';
+    else if (fits) reason = '擅长 ' + request.prefer + (primary.strengths?.length ? '' : '（按模型名识别）');
+    else reason = '默认';
+    if (primary.id !== def.id && cooling(store, def, now)) reason += '；默认服务最近连续失败，暂时避开';
+    else if (primary.id !== def.id && busy(store, def) && !fits) reason = '默认服务正忙，分流到这里';
+  }
   let fallbacks = [];
   if (store.failover !== false && !primary.noFailover) {
-    fallbacks = profiles.filter(item => item.id !== primary.id && !item.noFailover && (!needsVision || has(item, 'vision')));
-    // Closest match first: services sharing the preferred strength, then the default, then the rest in list order.
-    const score = item => (request.prefer && has(item, request.prefer) ? 2 : 0) + (item.id === def.id ? 1 : 0);
-    fallbacks = fallbacks.map((item, index) => ({ item, index })).sort((a, b) => score(b.item) - score(a.item) || a.index - b.index).map(entry => entry.item);
+    // Closest match first: fit, reliability and the default, then list order.
+    fallbacks = ranked(profiles.filter(item => item.id !== primary.id && !item.noFailover && (!needsVision || has(item, 'vision'))));
   }
   return { primary, fallbacks, reason, warning };
 }
@@ -129,4 +167,4 @@ function describeProfiles(store) {
   return profiles.map(item => '「' + item.name + '」' + item.settings.model + (item.id === store.defaultId ? '（默认）' : '') + (item.strengths.length ? ' 擅长:' + item.strengths.join('/') : '') + (item.note ? ' ' + item.note : '')).join('；');
 }
 
-module.exports = { AGENT_ROLES, isTransient, plan, taskRequest, targets, createLimiter, describeProfiles, byName };
+module.exports = { AGENT_ROLES, isTransient, plan, taskRequest, targets, createLimiter, describeProfiles, byName, inferStrengths, strengthsOf };
