@@ -26,6 +26,7 @@ const { DesktopAgent } = require('./desktop-agent.cjs');
 const { createSubAgents, createMutex } = require('./subagents.cjs');
 const providers = require('./providers.cjs');
 const router = require('./router.cjs');
+const serviceLimiter = require('./service-limiter.cjs');
 const { createConversationRuns } = require('./conversation-runs.cjs');
 const { createCheckpoints } = require('./checkpoints.cjs');
 const { createMcp } = require('./mcp.cjs');
@@ -153,7 +154,10 @@ const persistStore = () => writeAtomic(providersPath(), store);
 const persistSettings = () => writeAtomic(settingsPath(), settings);
 const safeDecrypt = value => { try { return decrypt(value); } catch { return ''; } };
 // Resolved (decrypted) view for calling the services; keys never leave this process.
-const resolvedStore = () => ({ profiles: store.profiles.map(item => providers.resolveProfile(item, safeDecrypt)), defaultId: store.defaultId, routes: store.routes, failover: store.failover });
+// Automatic routing sees how each service has been doing (usage ledger) and how busy it is right now.
+const serviceHealth = () => { try { return usageLedger?.serviceHealth() || {}; } catch { return {}; } };
+const resolvedStore = () => ({ profiles: store.profiles.map(item => providers.resolveProfile(item, safeDecrypt)), defaultId: store.defaultId, routes: store.routes, failover: store.failover,
+  health: serviceHealth(), load: id => ({ active: serviceLimiter.active(id), waiting: serviceLimiter.waiting(id) }) });
 async function syncSettingsFromStore() {
   const def = store.profiles.find(item => item.id === store.defaultId);
   settings = { ...settings, endpoint: def?.endpoint || '', model: def?.model || '', apiKeyEncrypted: def?.apiKeyEncrypted || '' };
@@ -298,6 +302,10 @@ handle('connectors:save', (_event, list) => mcp.save(list));
 handle('connectors:connect', (_event, id) => mcp.connect(String(id)));
 handle('connectors:disconnect', (_event, id) => mcp.disconnect(String(id)));
 handle('providers:get', () => providers.publicView(store));
+// What automatic routing would assume about each service (from its model name) and how each has been doing.
+handle('providers:insight', (_event, items) => ({
+  inferred: Object.fromEntries((Array.isArray(items) ? items : []).slice(0, 20).map(item => [String(item?.id || '').slice(0, 64), router.inferStrengths(String(item?.model || '').slice(0, 200), String(item?.endpoint || '').slice(0, 300))])),
+  health: serviceHealth(), now: Date.now() }));
 handle('providers:save', async (_event, value) => {
   store = providers.buildStore(value, store, { encrypt, validateEndpoint });
   await persistStore();

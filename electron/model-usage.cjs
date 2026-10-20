@@ -140,7 +140,33 @@ function createUsageLedger({ dir, now = Date.now, timeZone = Intl.DateTimeFormat
       commit({ type: 'settle', id, patch }); settled = true;
     } };
   }
-  return { init, begin, summary, setPolicy, day: () => dayAt(now()), file };
+  // How each service has been doing lately, from its last settled calls: reliability, speed, and whether to
+  // rest it after repeated failures (a rejected key or exhausted balance rests it longer).
+  function serviceHealth({ window = 30, maxAgeMs = 3 * 24 * 3600_000 } = {}) {
+    const byService = new Map();
+    for (const call of calls.values()) {
+      if (!call.providerId || !['done', 'unknown', 'failed'].includes(call.status) || !call.finishedAt) continue;
+      if (now() - Date.parse(call.finishedAt) > maxAgeMs) continue;
+      if (!byService.has(call.providerId)) byService.set(call.providerId, []);
+      byService.get(call.providerId).push(call);
+    }
+    const out = {};
+    for (const [id, list] of byService) {
+      const recent = list.sort((a, b) => (a.finishedAt < b.finishedAt ? -1 : 1)).slice(-window);
+      const ok = recent.filter(call => call.status !== 'failed');
+      let consecutiveFailures = 0;
+      for (let index = recent.length - 1; index >= 0 && recent[index].status === 'failed'; index--) consecutiveFailures++;
+      const lastFailure = [...recent].reverse().find(call => call.status === 'failed');
+      const durations = ok.map(call => Date.parse(call.finishedAt) - Date.parse(call.startedAt)).filter(value => value >= 0).sort((a, b) => a - b);
+      const accountProblem = /^HTTP_(401|402|403)$/.test(lastFailure?.errorCode || '');
+      const rest = consecutiveFailures >= 2 ? 10 * 60_000 : accountProblem && consecutiveFailures >= 1 ? 30 * 60_000 : 0;
+      out[id] = { calls: recent.length, ok: ok.length, consecutiveFailures, lastErrorCode: lastFailure?.errorCode || '',
+        medianMs: durations.length ? durations[Math.floor(durations.length / 2)] : null,
+        coolingUntil: rest && lastFailure ? Date.parse(lastFailure.finishedAt) + (accountProblem ? 30 * 60_000 : rest) : 0 };
+    }
+    return out;
+  }
+  return { init, begin, summary, setPolicy, serviceHealth, day: () => dayAt(now()), file };
 }
 function installUsageLedger(ledger) { installed = ledger; }
 function withUsage(scope, fn) { return context.run({ ...context.getStore(), ...scope }, fn); }

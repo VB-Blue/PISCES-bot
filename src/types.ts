@@ -45,7 +45,9 @@ export type ConnectionSettings = { endpoint: string; model: string; coreUrl: str
 export type Strength = 'strong' | 'fast' | 'cheap' | 'vision' | 'code' | 'long'
 export type AgentRole = 'researcher' | 'coder' | 'operator' | 'writer' | 'reviewer' | 'planner' | 'verifier' | 'learner'
 export type ProviderProfile = { id: string; name: string; endpoint: string; model: string; hasApiKey: boolean; strengths: Strength[]; note: string; maxConcurrent: number; noFailover: boolean }
-export type ProviderStore = { profiles: ProviderProfile[]; defaultId: string; routes: Partial<Record<AgentRole, string>>; failover: boolean }
+export type ServiceHealth = { calls: number; ok: number; consecutiveFailures: number; lastErrorCode: string; medianMs: number | null; coolingUntil: number }
+export type ProviderInsight = { inferred: Record<string, Strength[]>; health: Record<string, ServiceHealth>; now: number }
+export type ProviderStore ={ profiles: ProviderProfile[]; defaultId: string; routes: Partial<Record<AgentRole, string>>; failover: boolean }
 export type ProviderDraft = Omit<ProviderProfile, 'hasApiKey'> & { hasApiKey: boolean; apiKey?: string; clearApiKey?: boolean }
 export type JobStatus = 'scheduled' | 'queued' | 'running' | 'waiting' | 'paused' | 'done' | 'failed' | 'unverified' | 'cancelled' | 'interrupted'
 export type JobLog = { ts: string; kind: 'system' | 'user' | 'agent' | 'step'; text: string; ok?: boolean; error?: string }
@@ -201,6 +203,7 @@ declare global {
       saveProviders(value: { profiles: ProviderDraft[]; defaultId: string; routes: ProviderStore['routes']; failover: boolean }): Promise<ProviderStore>
       testAI(value: { endpoint?: string; model?: string; apiKey?: string; profileId?: string }): Promise<{ ok: boolean; models: string[]; modelChecked: boolean; listError?: string }>
       listModels(value: { endpoint?: string; apiKey?: string; profileId?: string }): Promise<{ models: string[]; url: string }>
+      providerInsight?(items: { id: string; model: string; endpoint: string }[]): Promise<ProviderInsight>
       onMemoryUsed(callback: (value: { id: string; memories: { id: string; text: string; kind: string }[]; playbooks: { id: string; title: string }[] }) => void): () => void
       onMemoryLearned(callback: (value: { id: string; items: LearnedItem[] }) => void): () => void
     }

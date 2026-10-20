@@ -1,7 +1,7 @@
 {
   "name": "pisces-ai",
   "productName": "PISCES AI",
-  "version": "0.21.4",
+  "version": "0.22.0",
   "private": true,
   "description": "AI 正常工作，核心从真实经验中成长的桌面工作台",
   "author": "PISCES AI",
@@ -19,7 +19,7 @@
     "smoke:core": "node scripts/smoke-core.cjs",
     "smoke:memory-core": "node scripts/smoke-memory-core.cjs",
     "smoke:cognition": "node scripts/smoke-cognition.cjs",
-    "pack:core": "npm run build && electron-builder --dir --win --x64 --config.directories.output=\"release/pisces-ai-v0.21.4\"",
+    "pack:core": "npm run build && electron-builder --dir --win --x64 --config.directories.output=\"release/pisces-ai-v0.22.0\"",
     "smoke:concurrency": "node scripts/smoke-concurrency.cjs",
     "test": "node --test tests/*.test.cjs",
     "preview": "vite preview --host 127.0.0.1",

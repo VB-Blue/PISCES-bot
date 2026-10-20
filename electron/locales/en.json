@@ -1503,5 +1503,12 @@
   "熟练": "Proficient",
   "有经验": "Experienced",
   "入门": "Beginner",
-  "不了解": "Unfamiliar"
+  "不了解": "Unfamiliar",
+  "没有勾选时，按模型名自动识别为：": "Untagged, so recognised from the model name as: ",
+  "最近连续失败 {p0} 次，自动分配暂时避开它，{p1} 后再试": "Failed {p0} times in a row; automatic routing avoids it until {p1}",
+  "最近 {p0} 次调用成功 {p1} 次": "{p1} of the last {p0} calls succeeded",
+  "，一般 {p0} 秒完成": ", usually done in {p0} s",
+  "自动分配还会看实际情况：最近连续失败的服务暂时避开，默认服务忙时分流给其他服务；没勾选擅长时，按模型名自动识别它擅长什么。": "Automatic routing also looks at how things are going: a service that keeps failing is avoided for a while, work spills over when the default is busy, and an untagged service is recognised from its model name.",
+  "这个任务使用的 AI 服务": "AI service for this task",
+  "这个目标使用的 AI 服务": "AI service for this goal"
 }

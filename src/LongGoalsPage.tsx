@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Clock, Pause, PencilSimple, Play, Plus, Stop, Target } from '@phosphor-icons/react'
-import type { LongGoal, LongGoalConfig } from './types'
+import type { LongGoal, LongGoalConfig, ProviderStore } from './types'
 import { t, systemText } from './i18n'
 import { cleanError, dayTime } from './ui'
 import './long-goals.css'
 
-type Draft = { title: string; objective: string; criteria: string; constraints: string; watchPaths: string; minIntervalMinutes: string; maxIntervalMinutes: string; dailyTokenLimit: string; runTokenLimit: string }
-const fresh = (): Draft => ({ title: '', objective: '', criteria: '', constraints: '', watchPaths: '', minIntervalMinutes: '60', maxIntervalMinutes: '360', dailyTokenLimit: '200000', runTokenLimit: '80000' })
-const draftFor = (goal: LongGoal): Draft => ({ title: goal.title, objective: goal.objective, criteria: goal.criteria || '', constraints: goal.constraints || '', watchPaths: goal.watchPaths?.join('\n') || '', minIntervalMinutes: String(goal.minIntervalMinutes), maxIntervalMinutes: String(goal.maxIntervalMinutes), dailyTokenLimit: String(goal.dailyTokenLimit), runTokenLimit: String(goal.runTokenLimit) })
+type Draft = { title: string; objective: string; criteria: string; constraints: string; watchPaths: string; minIntervalMinutes: string; maxIntervalMinutes: string; dailyTokenLimit: string; runTokenLimit: string; profile: string }
+const fresh = (): Draft => ({ title: '', objective: '', criteria: '', constraints: '', watchPaths: '', minIntervalMinutes: '60', maxIntervalMinutes: '360', dailyTokenLimit: '200000', runTokenLimit: '80000', profile: '' })
+const draftFor = (goal: LongGoal): Draft => ({ title: goal.title, objective: goal.objective, criteria: goal.criteria || '', constraints: goal.constraints || '', watchPaths: goal.watchPaths?.join('\n') || '', minIntervalMinutes: String(goal.minIntervalMinutes), maxIntervalMinutes: String(goal.maxIntervalMinutes), dailyTokenLimit: String(goal.dailyTokenLimit), runTokenLimit: String(goal.runTokenLimit), profile: goal.profile || '' })
 const names: Record<LongGoal['status'], string> = { active: '持续运行', reviewing: '复核本轮', attention: '需要处理', budget: '预算暂停', paused: '已暂停', stopped: '已停止' }
 
 export function LongGoalsPage({ openJob, openUsage }: { openJob: (id: string) => void; openUsage: () => void }) {
   const [items, setItems] = useState<LongGoal[]>([]), [selected, setSelected] = useState(''), [editing, setEditing] = useState('')
   const [draft, setDraft] = useState<Draft>(fresh), [error, setError] = useState(''), [busy, setBusy] = useState(false), [ready, setReady] = useState(!window.memoryDesktop)
+  const [services, setServices] = useState<ProviderStore | null>(null)
+  useEffect(() => { window.memoryDesktop?.providers?.().then(setServices).catch(() => setServices(null)) }, [])
   const generation = useRef(0)
   const creationKey = useRef('')
   const merge = (value: LongGoal) => setItems(previous => {
@@ -51,7 +53,7 @@ export function LongGoalsPage({ openJob, openUsage }: { openJob: (id: string) =>
       const current = items.find(item => item.id === editing)
       const config: LongGoalConfig = { title: draft.title, objective: draft.objective, criteria: draft.criteria, constraints: draft.constraints, watchPaths: draft.watchPaths.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
         minIntervalMinutes: Number(draft.minIntervalMinutes), maxIntervalMinutes: Number(draft.maxIntervalMinutes), dailyTokenLimit: Number(draft.dailyTokenLimit), runTokenLimit: Number(draft.runTokenLimit),
-        ...(current ? { id: current.id, revision: current.revision, profile: current.profile } : { creationKey: creationKey.current }) }
+        profile: draft.profile, ...(current ? { id: current.id, revision: current.revision } : { creationKey: creationKey.current }) }
       const value = await api.saveLongGoal(config); merge(value); setSelected(value.id)
       if (editing === 'new') { localStorage.removeItem('pisces.longGoal.draft'); localStorage.removeItem('pisces.longGoal.creationKey') }
       setEditing('')
@@ -76,6 +78,7 @@ export function LongGoalsPage({ openJob, openUsage }: { openJob: (id: string) =>
       <label><span>{t('想持续达成什么')}</span><textarea autoFocus rows={4} required minLength={4} maxLength={6000} value={draft.objective} onChange={event => field('objective', event.target.value)} placeholder={t('用自己的话描述目标、可用资料和希望看到的结果。')} /></label>
       <div className="goal-editor-columns"><label><span>{t('如何检查效果（可选）')}</span><textarea rows={3} maxLength={2000} value={draft.criteria} onChange={event => field('criteria', event.target.value)} /></label><label><span>{t('约束条件（可选）')}</span><textarea rows={3} maxLength={3000} value={draft.constraints} onChange={event => field('constraints', event.target.value)} placeholder={t('例如：资料范围、需要保留的记录、什么时候找你。')} /></label></div>
       <div className="goal-editor-numbers">{([['minIntervalMinutes', '最短检查间隔（分钟）', 5, 10080], ['maxIntervalMinutes', '最长检查间隔（分钟）', Number(draft.minIntervalMinutes) || 5, 43200], ['dailyTokenLimit', '目标每日 token 预算', 1024, 1000000000], ['runTokenLimit', '每轮 token 预算', 1024, Number(draft.dailyTokenLimit) || 1000000000]] as const).map(([key, label, min, max]) => <label key={key}><span>{t(label)}</span><input type="number" required min={min} max={max} step="1" value={draft[key]} onChange={event => field(key, event.target.value)} /></label>)}</div>
+      {(services?.profiles.length ?? 0) > 1 && <label><span>{t('这个目标使用的 AI 服务')}</span><select value={services!.profiles.some(item => item.id === draft.profile) ? draft.profile : ''} onChange={event => field('profile', event.target.value)}><option value="">{t('自动：按任务能力分配')}</option>{services!.profiles.map(item => <option key={item.id} value={item.id}>{item.name} · {item.model}</option>)}</select></label>}
       <label><span>{t('仅在这些文件变化后运行（可选，每行一个路径）')}</span><textarea rows={2} value={draft.watchPaths} onChange={event => field('watchPaths', event.target.value)} /><small className="goal-subtle">{t('只监测已授权目录中的文件。来源没有变化时，检查不调用模型；留空则按间隔持续执行。')}</small></label>
       <p className="goal-subtle">{t('沿用已授权工具；新增权限或无法核对的操作会暂停。电脑需保持开机联网，后台需持续运行。')}</p>
       <div className="goal-actions"><button type="button" className="button secondary" disabled={busy} onClick={() => setEditing('')}>{t('取消')}</button><button className="button primary" disabled={busy || !window.memoryDesktop}>{editing === 'new' ? t('创建并开始') : t('保存为暂停状态')}</button></div>
