@@ -1,7 +1,7 @@
 import { t } from './i18n'
 import { ArrowRight, BookOpen, Brain, DownloadSimple, ThumbsUp } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
-import type { AssistantState, SubjectState } from './types'
+import type { AssistantState, CognitionDomain, CognitionState, SubjectState } from './types'
 import { MethodList } from './AssistantPanels'
 import { Badge, Empty, PageHeader, dayTime } from './ui'
 import type { useMemoryStore } from './MemoryPage'
@@ -22,6 +22,8 @@ export function LearningPage({ store, assistantState, refreshAssistant, replay, 
   const verified = assistantState?.methods.filter(method => method.status === 'verified').length || 0
   const [subject, setSubject] = useState<SubjectState | null>(null)
   useEffect(() => { window.memoryDesktop?.subjectState?.().then(setSubject).catch(() => {}) }, [])
+  const [cognition, setCognition] = useState<CognitionState | null>(null)
+  useEffect(() => { window.memoryDesktop?.cognitionState?.().then(setCognition).catch(() => {}) }, [])
   const routeLabel: Record<string, string> = { skill: '本地技能', 'skill+plan': '技能＋规划', plan: '规划执行', direct: '直接执行' }
   return <section className="page learning-page">
     <PageHeader eyebrow="LEARNING FROM REAL WORK" title={t("越用越懂你")} description={t("每次对话里学到的偏好、总结的做法、你的纠正，都会在之后的回答里被用上。")} action={<button className="button secondary" onClick={exportData}><DownloadSimple size={15} />{t("导出记录")}</button>} />
@@ -31,6 +33,7 @@ export function LearningPage({ store, assistantState, refreshAssistant, replay, 
       <div><span>{t("你的纠正")}</span><strong>{stats?.lessons ?? 0}<small>{t("条")}</small></strong><p>{t("点“踩”并说明后长期生效")}</p></div>
       <div><span>{t("提供过的记忆")}</span><strong>{used}<small>{t("条")}</small></strong><p>{t("按请求选入过上下文")}</p></div>
     </div>
+    {cognition && <DomainCognition state={cognition} />}
     {stats?.core && <p className="memory-core-link">{!stats.core.linked ? t("记忆只保存在本机，没有连接核心") : stats.core.online ? t("记忆由核心（记忆体）保存，已同步到第 {p0} 版", { p0: stats.core.revision }) : t("核心暂未连接：{p0} 条变更已在本机排队，连接后自动交给核心", { p0: stats.core.pending })}</p>}
 
     {subject && <>
@@ -56,4 +59,21 @@ export function LearningPage({ store, assistantState, refreshAssistant, replay, 
     <details className="raw-details"><summary><BookOpen size={15} />{t("核心学习状态（技术详情）")}</summary>
       <button className="button secondary" onClick={refreshCoreMemory}>{t("读取")}</button>{coreLearning ? <pre className="core-json">{JSON.stringify(coreLearning, null, 2)}</pre> : <p className="field-note">{t("点击“读取”获取核心的规则与摄取状态。")}</p>}</details>
   </section>
+}
+
+const levelText = (level: CognitionDomain['level']) => level === 'proficient' ? t("熟练") : level === 'practiced' ? t("有经验") : level === 'novice' ? t("入门") : t("不了解")
+
+// What the memory core knows about each field of work, and how well its ways of learning have worked.
+function DomainCognition({ state }: { state: CognitionState }) {
+  const strategies = state.strategies.filter(item => item.trials > 0)
+  return <>
+    <div className="section-heading"><h3>{t("领域认知")}</h3></div>
+    <p className="field-note wide">{t("记忆体对每个领域的了解：规律来自同行数据和你的实践结果，不是模型的说法。")}</p>
+    {state.domains.length ? <div className="cognition-domains">{state.domains.map(domain => <div className="cognition-domain" key={domain.id}>
+      <div className="cognition-head"><b>{domain.name}</b><Badge>{levelText(domain.level)}</Badge><small>{t("{p0} 条样本 · 实践 {p1} 次", { p0: domain.observations, p1: domain.practice.tasks })}</small></div>
+      {domain.principles.slice(0, 6).map(item => <p key={item.id} className={'cognition-principle ' + item.status}><span>{item.status_label}</span>{item.statement}</p>)}
+      {domain.active_plan && <p className="cognition-plan"><span>{t("当前学习计划")}</span>{domain.active_plan.steps.join(' → ')}</p>}
+    </div>)}</div> : <Empty icon={Brain} title={t("还没有领域认知")} text={t("交给它一件需要专门经验的事（比如运营社媒账号），它会先判断懂不懂，不懂就先学。")} />}
+    {strategies.length > 0 && <p className="field-note wide">{t("学习方法的效果：")}{strategies.map(item => item.name + ' ' + item.successes + '/' + item.trials).join('，')}</p>}
+  </>
 }

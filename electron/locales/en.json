@@ -1486,5 +1486,22 @@
   "字": "characters",
   "记忆由核心（记忆体）保存，已同步到第 {p0} 版": "Memory is held by the core (Memory Core), synced to revision {p0}",
   "核心暂未连接：{p0} 条变更已在本机排队，连接后自动交给核心": "Core not connected: {p0} changes are queued on this computer and will be handed to the core when it connects",
-  "记忆只保存在本机，没有连接核心": "Memory is stored only on this computer and is not linked to the core"
+  "记忆只保存在本机，没有连接核心": "Memory is stored only on this computer and is not linked to the core",
+  "查看领域认识：{p0}": "View domain knowledge: {p0}",
+  "交给记忆体分析样本：{p0}": "Hand samples to the memory core for analysis: {p0}",
+  "记下待检验的规律：{p0}": "Record a principle to test: {p0}",
+  "登记对照实践：{p0}": "Register a controlled trial: {p0}",
+  "记录实践结果：{p0}": "Record a trial result: {p0}",
+  "记忆体判断：{p0}": "Memory core judgement: {p0}",
+  "领域认知": "Domain knowledge",
+  "记忆体对每个领域的了解：规律来自同行数据和你的实践结果，不是模型的说法。": "What the memory core knows about each field: principles come from peer data and your own results, not from what a model says.",
+  "{p0} 条样本 · 实践 {p1} 次": "{p0} samples · {p1} tasks practised",
+  "当前学习计划": "Current learning plan",
+  "还没有领域认知": "No domain knowledge yet",
+  "交给它一件需要专门经验的事（比如运营社媒账号），它会先判断懂不懂，不懂就先学。": "Give it a job that needs expertise (such as running a social account). It first judges whether it knows the field, and learns first if it does not.",
+  "学习方法的效果：": "How its ways of learning worked: ",
+  "熟练": "Proficient",
+  "有经验": "Experienced",
+  "入门": "Beginner",
+  "不了解": "Unfamiliar"
 }

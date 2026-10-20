@@ -26,7 +26,12 @@ export type DurableRequirement = RequirementInput & { id: string; revision: numb
 export type RequirementsCheck = { signature: string; checkedAt: string; passed: boolean; recordPath?: string; checks: { id: string; revision: number; text: string; status: 'passed' | 'failed' | 'unknown'; source?: string; reason: string; evidence?: string }[] }
 export type MemoryItem = { id: string; kind: 'preference' | 'fact' | 'habit' | 'goal' | 'lesson'; text: string; pinned: boolean; source: 'user' | 'ai' | 'auto' | 'feedback'; createdAt: string; updatedAt: string; hits: number }
 export type Playbook = { id: string; title: string; trigger: string; steps: string[]; source: string; score: number; uses: number; createdAt: string; updatedAt: string }
-export type MemoryCoreLink = { linked: boolean; online: boolean; revision: number; pending: number; migrated: boolean; error: string; at: string }
+export type CognitionPrinciple = { id: string; statement: string; status: 'hypothesis' | 'user_stated' | 'supported' | 'confirmed' | 'refuted'; status_label: string; confidence: number }
+export type CognitionPlan = { id: string; strategy_id: string; steps: string[]; status: string; outcome: string; created_at: string }
+export type CognitionDomain = { id: string; name: string; level: 'unknown' | 'novice' | 'practiced' | 'proficient'; observations: number; practice: { tasks: number; passed: number }; principles: CognitionPrinciple[]; active_plan: CognitionPlan | null }
+export type CognitionStrategy = { id: string; name: string; description: string; trials: number; successes: number }
+export type CognitionState = { revision: number; domains: CognitionDomain[]; strategies: CognitionStrategy[] }
+export type MemoryCoreLink ={ linked: boolean; online: boolean; revision: number; pending: number; migrated: boolean; error: string; at: string }
 export type MemoryStats = { memories: number; playbooks: number; turns: number; pinned: number; lessons: number; core?: MemoryCoreLink }
 export type ToolAuditEntry = { ts: string; tool: string; summary: string; ok: boolean; error?: string; denied?: boolean }
 export type Grant = { key: string; label: string; added: string }
@@ -140,6 +145,7 @@ declare global {
       resolveDesktopApproval(value: { approvalId: string; approved?: boolean; decision?: 'once' | 'session' | 'always' | 'deny' }): Promise<void>
       deleteReminder(id: string): Promise<boolean>
       subjectState(): Promise<SubjectState>
+      cognitionState?(): Promise<CognitionState>
       memory: {
         requirements(): Promise<DurableRequirement[]>
         saveRequirements(rules: RequirementInput[]): Promise<DurableRequirement[]>

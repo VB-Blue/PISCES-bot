@@ -97,6 +97,7 @@ contextBridge.exposeInMainWorld('memoryDesktop', {
   },
   resolveDesktopApproval: value => ipcRenderer.invoke('desktop:approval_resolve', value),
   subjectState: () => ipcRenderer.invoke('subject:state'),
+  cognitionState: () => ipcRenderer.invoke('cognition:state'),
   memory: {
     requirements: () => ipcRenderer.invoke('requirements:list'),
     saveRequirements: rules => ipcRenderer.invoke('requirements:save', { rules }),

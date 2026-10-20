@@ -18,6 +18,7 @@
     "smoke:ui": "electron . --ui-smoke",
     "smoke:core": "node scripts/smoke-core.cjs",
     "smoke:memory-core": "node scripts/smoke-memory-core.cjs",
+    "smoke:cognition": "node scripts/smoke-cognition.cjs",
     "pack:core": "npm run build && electron-builder --dir --win --x64 --config.directories.output=\"release/pisces-ai-v0.21.4\"",
     "smoke:concurrency": "node scripts/smoke-concurrency.cjs",
     "test": "node --test tests/*.test.cjs",

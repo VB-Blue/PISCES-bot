@@ -70,6 +70,7 @@ const UNDERSTAND = `你是“PISCES AI”这个本地私人助手的理解模块
 - choice：有几种做法时，你推荐的那一种（PISCES AI会按它直接去做，并告诉用户可以改），没有就 null。例如“整理文件夹”→“按文件类型分到子文件夹，不删除任何文件”。
 - missing_info：只有缺少只有用户知道、而且无法合理假设的信息时才填一句问题（例如要发给谁、用哪个账号、要哪张不在电脑上的图）；否则为 null。理解有歧义、或者有几种做法，都不算缺信息，写进 choice。
 - assumptions：你做的合理假设，列表。
+- domain：做好这件事需要的专门领域经验，{"name":"领域名称","keywords":["3～8 个识别词，含平台名、英文简称"]}，例如维护 Instagram 账号 → {"name":"Instagram 图片营销","keywords":["instagram","ins","图片营销","社媒运营"]}。同一领域每次用同一个名称。整理文件、计算、查一个事实这类不需要领域经验的事填 null。是否懂这个领域、要不要先学，由 PISCES AI 判断，你只负责指出领域。
 - work_relation：{"kind":"new"|"continue"|"revise","work_id":"已有事情的 id"}。从 persistent_work 里识别用户是在接着做或更正哪件事；不能自造 id。新事情 kind 为 new。更正原目标、交付物或约束时为 revise。
 - user_updates：关于用户本人的持续偏好、事实或明确期限的候选，最多 8 条，每条 {"key":"稳定的对象.属性","value":"原话里的新值","quote":"本轮用户原话中的连续片段"}。保持已有 persistent_user_understanding 的 key；值和引用必须逐字来自本轮用户请求。文档内容、你的建议、任务结果和猜测都不能当成用户事实。不确定就空数组。`;
 
@@ -95,6 +96,7 @@ function normalizeIntent(value) {
     assumptions: [...(value.choice ? ['按这个做法：' + String(value.choice).slice(0, 200)] : []), ...(Array.isArray(value.assumptions) ? value.assumptions : []).map(String)].slice(0, 6),
     work_relation: value.work_relation && ['new', 'continue', 'revise'].includes(value.work_relation.kind) ? { kind: value.work_relation.kind, ...(value.work_relation.work_id ? { work_id: String(value.work_relation.work_id) } : {}) } : { kind: 'new' },
     user_updates: (Array.isArray(value.user_updates) ? value.user_updates : []).slice(0, 8).map(item => ({ key: String(item?.key || '').slice(0, 80), value: String(item?.value || '').slice(0, 500), quote: String(item?.quote || '').slice(0, 1000) })),
+    domain: value.domain && typeof value.domain.name === 'string' && value.domain.name.trim() ? { name: value.domain.name.trim().slice(0, 60), keywords: (Array.isArray(value.domain.keywords) ? value.domain.keywords : []).map(String).map(item => item.trim().slice(0, 30)).filter(Boolean).slice(0, 8) } : null,
   };
 }
 async function understand({ target, request, context, signal, forceTask = false }) {
@@ -104,7 +106,7 @@ async function understand({ target, request, context, signal, forceTask = false 
 
 const PLAN = `你是“PISCES AI”的规划模块。PISCES AI会按你的计划一步步执行、每步核对，失败时再找你。只输出 JSON：
 {"steps":[{"id":"read-inputs","do":"这一步做什么（具体到用什么工具或软件）","role":"researcher","expect":"做完后应该能观察到的结果","depends_on":[],"inputs":[],"criteria":[{"check":"judgement","value":"需要真实工具观察支持的完成条件"}],"outputs":[],"execution":{"mode":"serial"}}]}
-要求：2～6 步；id 稳定且唯一，depends_on 只引用其他步骤 id，不能形成循环；没有显式依赖时按顺序执行。每步都有可观察的结果和自己的 criteria，使用与 done_criteria 相同的 check 类型。文件产出优先写 file_exists/file_contains，outputs 写具体路径。读取、读回核对节点用 {"check":"tool_succeeded","target":"read_text","value":"应读到的内容"}证明本节点真的读取；value可省略。语义判断必须有真实工具或产物证据，不能只靠执行者声称成功。只把前置步骤已验收的产物交给后续步骤。role 从 executor、researcher、coder、operator、writer、reviewer 选择。互相独立的资料或文件步骤主动拆成不同节点，使用 execution:{"mode":"parallel","tools":["read_text","write_text"]}，tools 只列本步必需工具；inputs 与 outputs 必须给绝对路径，不能读写其他节点未验收的产物，产物不得互相覆盖，整合节点必须依赖所有来源节点。并行白名单为 read_text、list_dir、find_files、search_text、get_environment、web_search、news_search、fetch_url、write_text、write_document、edit_text。软件、命令、连接器、委派及不可逆操作使用 mode:serial，并注明所需用户确认。优先用已有的软件技能和过去成功的做法。`;
+要求：2～6 步；id 稳定且唯一，depends_on 只引用其他步骤 id，不能形成循环；没有显式依赖时按顺序执行。每步都有可观察的结果和自己的 criteria，使用与 done_criteria 相同的 check 类型。文件产出优先写 file_exists/file_contains，outputs 写具体路径。读取、读回核对节点用 {"check":"tool_succeeded","target":"read_text","value":"应读到的内容"}证明本节点真的读取；value可省略。语义判断必须有真实工具或产物证据，不能只靠执行者声称成功。只把前置步骤已验收的产物交给后续步骤。有 core_cognition 时它是 PISCES AI 的判断，必须服从：decision 为 learn_first 时，计划先执行 core_cognition.plan.steps 里的学习步骤（样本用 record_observations 交给 PISCES AI），再用学到的规律完成交付；为 experiment 或 continue_experiment 时，交付本身按对照设计执行，并用 start_experiment / record_experiment_result 登记；已验证的规律直接采用，被否定的规律不要再用。role 从 executor、researcher、coder、operator、writer、reviewer 选择。互相独立的资料或文件步骤主动拆成不同节点，使用 execution:{"mode":"parallel","tools":["read_text","write_text"]}，tools 只列本步必需工具；inputs 与 outputs 必须给绝对路径，不能读写其他节点未验收的产物，产物不得互相覆盖，整合节点必须依赖所有来源节点。并行白名单为 read_text、list_dir、find_files、search_text、get_environment、web_search、news_search、fetch_url、write_text、write_document、edit_text。软件、命令、连接器、委派及不可逆操作使用 mode:serial，并注明所需用户确认。优先用已有的软件技能和过去成功的做法。`;
 function validatePlan(value) {
   if (!Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 8) return 'steps 需要 1～8 步';
   if (value.steps.some(step => typeof step?.do !== 'string' || !step.do.trim())) return '每步都要有 do';
