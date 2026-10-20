@@ -6,6 +6,12 @@ const STRENGTHS = ['strong', 'fast', 'cheap', 'vision', 'code', 'long'];
 // Agent roles that can be pinned to a particular profile.
 const ROLES = ['researcher', 'coder', 'operator', 'writer', 'reviewer', 'planner', 'verifier', 'learner'];
 const MAX_PROFILES = 20;
+// What a service does: answers and runs tasks (chat), or generates pictures or videos for the generation tools.
+const KINDS = ['chat', 'image', 'video'];
+// Request formats the generation tools speak. Images use the widely copied OpenAI images endpoint.
+const PROTOCOLS = { chat: ['openai'], image: ['openai'], video: ['openai', 'ark', 'siliconflow', 'minimax'] };
+const kindOf = profile => KINDS.includes(profile?.kind) ? profile.kind : 'chat';
+const isChat = profile => kindOf(profile) === 'chat';
 
 const emptyStore = () => ({ profiles: [], defaultId: '', routes: {}, failover: true });
 
@@ -13,7 +19,7 @@ const emptyStore = () => ({ profiles: [], defaultId: '', routes: {}, failover: t
 function migrate(raw, legacy) {
   if (raw && Array.isArray(raw.profiles)) {
     const store = { ...emptyStore(), ...raw, profiles: raw.profiles.filter(item => item && item.id && item.endpoint && item.model) };
-    if (!store.profiles.some(item => item.id === store.defaultId)) store.defaultId = store.profiles[0]?.id || '';
+    if (!store.profiles.some(item => item.id === store.defaultId && isChat(item))) store.defaultId = store.profiles.find(isChat)?.id || '';
     store.routes = cleanRoutes(store.routes, store.profiles);
     return store;
   }
@@ -28,7 +34,7 @@ function migrate(raw, legacy) {
 
 function cleanRoutes(routes, profiles) {
   const out = {};
-  for (const role of ROLES) if (routes && typeof routes[role] === 'string' && profiles.some(item => item.id === routes[role])) out[role] = routes[role];
+  for (const role of ROLES) if (routes && typeof routes[role] === 'string' && profiles.some(item => item.id === routes[role] && isChat(item))) out[role] = routes[role];
   return out;
 }
 
@@ -43,7 +49,9 @@ function buildProfile(input, existing, { encrypt, validateEndpoint }) {
   const apiKeyEncrypted = input.clearApiKey ? '' : (input.apiKey ? encrypt(String(input.apiKey)) : (existing?.apiKeyEncrypted || ''));
   const strengths = (Array.isArray(input.strengths) ? input.strengths : []).filter(item => STRENGTHS.includes(item)).filter((item, index, all) => all.indexOf(item) === index);
   const maxConcurrent = Number.isInteger(input.maxConcurrent) ? Math.max(1, Math.min(8, input.maxConcurrent)) : 2;
-  return { id: existing?.id || (typeof input.id === 'string' && /^[\w-]{6,64}$/.test(input.id) ? input.id : randomUUID()), name, endpoint, model, apiKeyEncrypted, strengths, note: String(input.note || '').trim().slice(0, 200), maxConcurrent, noFailover: input.noFailover === true };
+  const kind = kindOf(input);
+  const protocol = PROTOCOLS[kind].includes(input.protocol) ? input.protocol : PROTOCOLS[kind][0];
+  return { kind, protocol, id: existing?.id || (typeof input.id === 'string' && /^[\w-]{6,64}$/.test(input.id) ? input.id : randomUUID()), name, endpoint, model, apiKeyEncrypted, strengths, note: String(input.note || '').trim().slice(0, 200), maxConcurrent, noFailover: input.noFailover === true };
 }
 
 function buildStore(input, previous, deps) {
@@ -56,19 +64,21 @@ function buildStore(input, previous, deps) {
     if (names.has(key)) throw new Error('服务名称重复：' + profile.name + '（子代理按名称选择服务）');
     names.add(key);
   }
-  const defaultId = profiles.some(item => item.id === input.defaultId) ? input.defaultId : (profiles[0]?.id || '');
+  // The default answers conversations, so it is always a chat service.
+  const defaultId = profiles.some(item => item.id === input.defaultId && isChat(item)) ? input.defaultId : (profiles.find(isChat)?.id || '');
   // The form refers to profiles by the id it was given; new rows get fresh ids, so map form ids onto the final ones.
   const idOf = formId => profiles[input.profiles.findIndex(item => item?.id === formId)]?.id;
   const routes = {};
-  for (const role of ROLES) { const target = idOf(input.routes?.[role]); if (target) routes[role] = target; }
-  const fixedDefault = idOf(input.defaultId) || defaultId;
+  for (const role of ROLES) { const target = idOf(input.routes?.[role]); if (target && isChat(profiles.find(item => item.id === target))) routes[role] = target; }
+  const mapped = idOf(input.defaultId);
+  const fixedDefault = mapped && isChat(profiles.find(item => item.id === mapped)) ? mapped : defaultId;
   return { profiles, defaultId: fixedDefault, routes, failover: input.failover !== false };
 }
 
-const publicProfile = profile => ({ id: profile.id, name: profile.name, endpoint: profile.endpoint, model: profile.model, hasApiKey: !!profile.apiKeyEncrypted, strengths: profile.strengths || [], note: profile.note || '', maxConcurrent: profile.maxConcurrent || 2, noFailover: !!profile.noFailover });
+const publicProfile = profile => ({ kind: kindOf(profile), protocol: profile.protocol || 'openai', id: profile.id, name: profile.name, endpoint: profile.endpoint, model: profile.model, hasApiKey: !!profile.apiKeyEncrypted, strengths: profile.strengths || [], note: profile.note || '', maxConcurrent: profile.maxConcurrent || 2, noFailover: !!profile.noFailover });
 const publicView = store => ({ profiles: store.profiles.map(publicProfile), defaultId: store.defaultId, routes: store.routes, failover: store.failover });
 
 // A profile ready to call: decrypted key, plain settings. Never leaves the main process.
-const resolveProfile = (profile, decrypt) => profile && ({ id: profile.id, name: profile.name, settings: { endpoint: profile.endpoint, model: profile.model, providerId: profile.id, maxConcurrent: profile.maxConcurrent || 2 }, apiKey: decrypt(profile.apiKeyEncrypted), strengths: profile.strengths || [], note: profile.note || '', maxConcurrent: profile.maxConcurrent || 2, noFailover: !!profile.noFailover });
+const resolveProfile = (profile, decrypt) => profile && ({ kind: kindOf(profile), protocol: profile.protocol || 'openai', id: profile.id, name: profile.name, settings: { endpoint: profile.endpoint, model: profile.model, providerId: profile.id, maxConcurrent: profile.maxConcurrent || 2 }, apiKey: decrypt(profile.apiKeyEncrypted), strengths: profile.strengths || [], note: profile.note || '', maxConcurrent: profile.maxConcurrent || 2, noFailover: !!profile.noFailover });
 
-module.exports = { STRENGTHS, ROLES, MAX_PROFILES, emptyStore, migrate, buildStore, buildProfile, publicView, publicProfile, resolveProfile };
+module.exports = { STRENGTHS, ROLES, KINDS, PROTOCOLS, kindOf, isChat, MAX_PROFILES, emptyStore, migrate, buildStore, buildProfile, publicView, publicProfile, resolveProfile };

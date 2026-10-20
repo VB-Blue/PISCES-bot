@@ -153,6 +153,9 @@ const localStubCore = async body => body.action === 'reserve_call' ? { call: { i
 const COMPUTER_USE_GUIDE = '\n\n操作电脑软件：\n- observe({window}) 看界面：返回带编号框的截图和元素清单。之后 click({id})、type_text({text, into: 编号}) 直接按编号操作；每次操作后系统都会自动等界面稳定，并返回新的观察和 changed（界面是否真的变了），编号每次都会刷新，只用最新一次的。\n- 读内容用 read_window_text（邮件主题、列表、文档正文），不要靠看图猜；小字用 zoom。\n- 自绘界面（Photoshop 画布、游戏、没有编号的区域）：find_text / click_text（OCR）、快捷键，或 click 的 x、y。\n- 需要等待用 wait_for，不要盲目重试。复杂任务先 update_plan，并随进度更新。\n- changed 为 false 说明没生效，先判断原因再换办法；系统会拦截连续无效的重复操作，被拦时换方法或向用户说明。\n- 批量操作先做一项验证再成批。删除、发送、付款、改系统设置先问用户；归档、移动这类可撤销的直接做。做完核对并汇报，没做完不说完成。';
 // Lookups with no side effects: when the model asks for several at once they run concurrently.
 const READ_ONLY = new Set(['web_search', 'news_search', 'fetch_url', 'read_text', 'list_dir', 'find_files', 'search_text', 'recall', 'get_environment']);
+// Pictures and videos a tool produced (generation, image edits, connector results), shown in the conversation.
+const MEDIA_FILE = /.(png|jpe?g|webp|gif|bmp|mp4|webm|m4v|mov)$/i;
+const mediaFiles = feedback => [...new Set([...(Array.isArray(feedback?.files) ? feedback.files : []), ...(Array.isArray(feedback?.artifacts) ? feedback.artifacts.map(item => item?.path) : [])].filter(item => typeof item === 'string' && MEDIA_FILE.test(item)))].slice(0, 12);
 const stepLabels = { read_file: '读取所选文件', write_inventory: '生成文件清单与校验', observe_desktop: '观察软件窗口', desktop_action: '操作软件窗口', schedule_reminder: '设置提醒' };
 
 // fallbacks: other services to try, in order, when the current one is down, throttled or out of balance.
@@ -187,7 +190,7 @@ async function runAssistant({ settings, apiKey, core, work, messages, signal, em
   const recordOutcome = async (name, args, feedback, label = stepLabels[name] || name) => {
     const outcome = classifyToolOutcome(feedback, name);
     const invocationKey = name + ':' + JSON.stringify(args);
-    try { await progress({ phase: 'settled', operation: name, label, ok: outcome.ok, execution_status: outcome.status, ...(outcome.error ? { error: outcome.error } : {}), ...(feedback?.receipt ? { receipt: feedback.receipt } : {}), ...(outcome.ok && name === 'read_text' && feedback?.file_state ? { file_state: feedback.file_state } : {}), ...(outcome.ok && ['write_document', 'write_text'].includes(name) && typeof feedback?.path === 'string' ? { file: feedback.path } : {}) }); }
+    try { await progress({ phase: 'settled', operation: name, label, ok: outcome.ok, execution_status: outcome.status, ...(outcome.error ? { error: outcome.error } : {}), ...(feedback?.receipt ? { receipt: feedback.receipt } : {}), ...(outcome.ok && name === 'read_text' && feedback?.file_state ? { file_state: feedback.file_state } : {}), ...(outcome.ok && ['write_document', 'write_text'].includes(name) && typeof feedback?.path === 'string' ? { file: feedback.path } : {}), ...(outcome.ok && mediaFiles(feedback).length ? { files: mediaFiles(feedback) } : {}) }); }
     catch (error) { throw Object.assign(new Error('操作记录保存失败，已停止继续派发：' + error.message), { code: 'CHECKPOINT_PERSIST_FAILED', cause: error }); }
     try { await onToolResult?.({ operation: name, args, result: feedback, ok: outcome.ok, receipt: feedback?.receipt, file_state: feedback?.file_state }); }
     catch (error) { throw Object.assign(new Error('节点证据保存失败，已停止继续派发：' + error.message), { code: 'CHECKPOINT_PERSIST_FAILED', cause: error }); }

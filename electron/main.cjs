@@ -93,7 +93,7 @@ app.on('second-instance', (_event, argv) => {
   // Opening the app again is an explicit start request, including when its previous window was only hidden.
   if (externalRuntime && !taskHost) void app.whenReady().then(startExecutionRuntime).catch(error => sendWindow('runtime:state', { online: false, ready: false, stopped: runtimeStopped, error: error.message }));
 });
-protocol.registerSchemesAsPrivileged([{ scheme: 'memory', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'memory', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 let window;
 const defaultPrefs = { web: true, files: true, commands: true, apps: true, roots: [], grants: [], control: true, delegate: true, background: true, persona: { name: 'PISCES AI', avatar: 'mark', color: '#000000', style: 'balanced', custom: '' }, subagentModel: '', subject: true, maxTokens: 32000, autoLearn: true, closeToTray: true, openAtLogin: false };
 let prefs = { ...defaultPrefs };
@@ -377,10 +377,21 @@ handle('core:method-replay', async (_event, value) => {
   } finally { run.finish(); }
 });
 handle('core:learning-state', async () => coreGet('/api/v1/expert/operator/state'));
+// The app's own pages, plus pictures and videos shown in the conversation (memory://app/__media?path=...).
+// Media is served only for picture and video files inside the user's folders or the app's output folders.
+const serveMedia = require('./media-protocol.cjs').createMediaHandler({ fetchFile: (url, init) => net.fetch(url, init),
+  roots: () => [...['desktop', 'documents', 'downloads', 'pictures', 'videos'].map(name => { try { return app.getPath(name); } catch { return ''; } }),
+    ...(prefs.roots || []), path.join(dataRoot, 'connectors', 'results'), path.join(dataRoot, 'attachments')] });
+function serveMemory(request) {
+  try {
+    if (new URL(request.url).pathname === '/__media') return serveMedia(request).catch(() => new Response('Not found', { status: 404 }));
+    return net.fetch(pathToFileURL(resolveAsset(path.join(app.getAppPath(), 'dist'), request.url)).toString());
+  } catch { return new Response('Not found', { status: 404 }); }
+}
 // A document the assistant produced: open it in its usual app, or show it in Explorer. Never programs or scripts.
 async function producedFile(value) {
   const file = String(value || '');
-  if (!path.isAbsolute(file) || !/\.(docx?|xlsx?|pptx?|pdf|md|txt|csv|json|html?|png|jpe?g|webp|svg)$/i.test(file)) throw new Error('只能打开助手生成的文档');
+  if (!path.isAbsolute(file) || !/\.(docx?|xlsx?|pptx?|pdf|md|txt|csv|json|html?|png|jpe?g|webp|gif|bmp|svg|mp4|webm|m4v|mov)$/i.test(file)) throw new Error('只能打开助手生成的文档');
   if (!(await stat(file).catch(() => null))?.isFile()) throw new Error('文件已不在原位置：' + file);
   return file;
 }
@@ -663,10 +674,13 @@ handle('ai:test', async (_event, value) => {
   let models = [], listError = '';
   try { models = (await listModels({ base, key })).models; }
   catch (error) { if (/密钥/.test(error.message)) throw error; listError = error.message; }
-  if (model) {
+  // A generation service is not asked to chat; a real generation would cost money, so it is checked on first use.
+  const generation = ['image', 'video'].includes(value?.kind);
+  if (model && !generation) {
     await modelResponse({ endpoint: base, model, maxTokens: 8, providerId: saved?.id }, key, [{ role: 'user', content: 'ping' }], 'service_test', AbortSignal.timeout(25000), false, false, null, [], false, true);
   }
-  return { ok: true, models, modelChecked: !!model, ...(listError ? { listError } : {}) };
+  if (generation && listError) throw new Error(listError);
+  return { ok: true, models, modelChecked: !!model && !generation, generation, ...(listError ? { listError } : {}) };
 });
 const pendingApprovals = new Map();
 handle('desktop:approval_resolve', (_event, { approvalId, approved, decision }) => {
@@ -1220,7 +1234,7 @@ app.whenReady().then(async () => {
     try { prefs = { ...defaultPrefs, ...JSON.parse(await readFile(prefsPath(), 'utf8')) }; } catch {}
     void getRuntimeClient().then(async client => { prefs = { ...defaultPrefs, ...await client.call('prefs:get') }; sendWindow('runtime:state', await client.call('runtime:status')); }).catch(error => sendWindow('runtime:state', { online: false, ready: false, error: error.message }));
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-    protocol.handle('memory', request => { try { return net.fetch(pathToFileURL(resolveAsset(path.join(app.getAppPath(), 'dist'), request.url)).toString()); } catch { return new Response('Not found', { status: 404 }); } });
+    protocol.handle('memory', serveMemory);
     await createWindow(); return;
   }
   if (taskHost) {
@@ -1270,7 +1284,7 @@ app.whenReady().then(async () => {
   await browserRuntime.init().catch(error => console.error('浏览器工作区需要修复：' + error.message));
   checkpoints = createCheckpoints(path.join(dataRoot, 'checkpoints'));
   const buildTools = shared => createTools({ memory, userDataDir: dataRoot, getPrefs: () => prefs, shared,
-    host: { path: name => app.getPath(name), openExternal: url => shell.openExternal(url), editImage: (bytes, mime, ops, format) => imageEdit.runInWindow(BrowserWindow, bytes, mime, ops, format),
+    host: { path: name => app.getPath(name), generationServices: () => resolvedStore().profiles.filter(item => item.kind === 'image' || item.kind === 'video'), openExternal: url => shell.openExternal(url), editImage: (bytes, mime, ops, format) => imageEdit.runInWindow(BrowserWindow, bytes, mime, ops, format),
       desktop: desktopAgent, browser: browserRuntime, checkpoints, clipboard: { readText: () => clipboard.readText(), writeText: text => clipboard.writeText(text) }, controlStarted: startControl,
       saveGrant: async grant => {
         if (prefs.grants.some(item => item.key === grant.key) || prefs.grants.length >= 200) return;
@@ -1316,10 +1330,7 @@ app.whenReady().then(async () => {
   if (!smoke) setupTray();
   if (taskHost) { runtimeServer.ready(); console.log('PISCES execution host ready: ' + process.pid); return; }
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-  protocol.handle('memory', request => {
-    try { return net.fetch(pathToFileURL(resolveAsset(path.join(app.getAppPath(), 'dist'), request.url)).toString()); }
-    catch { return new Response('Not found', { status: 404 }); }
-  });
+  protocol.handle('memory', serveMemory);
   await createWindow();
 }).catch(error => { console.error(error.stack || error.message); app.exit(1); });
 app.on('before-quit', event => {

@@ -44,6 +44,9 @@ const healthOf = (store, profile) => store.health?.[profile.id] || null;
 const cooling = (store, profile, now = Date.now()) => (healthOf(store, profile)?.coolingUntil || 0) > now;
 const busy = (store, profile) => { const load = store.load?.(profile.id); return !!load && load.active >= (profile.maxConcurrent || 2); };
 
+// Image and video services serve the generation tools; conversations and tasks only go to chat services.
+const answersChat = profile => !profile.kind || profile.kind === 'chat';
+
 const byName = (profiles, name) => {
   const wanted = String(name || '').trim().toLowerCase();
   return wanted ? profiles.find(item => item.id === name || item.name.toLowerCase() === wanted) : undefined;
@@ -54,7 +57,7 @@ const byName = (profiles, name) => {
 //   request: { profile?, role?, prefer?, capabilities? }
 // Precedence: explicit profile name > the user's route for the role > needs vision > preferred strength > default.
 function plan(store, request = {}) {
-  const profiles = store.profiles || [];
+  const profiles = (store.profiles || []).filter(answersChat);
   if (!profiles.length) return null;
   const def = profiles.find(item => item.id === store.defaultId) || profiles[0];
   const needsVision = (request.capabilities || []).some(item => item === 'desktop' || item === 'vision');
@@ -162,7 +165,7 @@ function targets(store, settings, request = {}) {
 
 // Text for the delegate tool so the main model can allocate work knowingly.
 function describeProfiles(store) {
-  const profiles = store.profiles || [];
+  const profiles = (store.profiles || []).filter(answersChat);
   if (profiles.length < 2) return '';
   return profiles.map(item => '「' + item.name + '」' + item.settings.model + (item.id === store.defaultId ? '（默认）' : '') + (item.strengths.length ? ' 擅长:' + item.strengths.join('/') : '') + (item.note ? ' ' + item.note : '')).join('；');
 }

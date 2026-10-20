@@ -46,7 +46,7 @@ export function WorkProcess({ message, running }: { message: Message; running: b
   const steps = message.steps || []
   if (!steps.length && !message.plan?.length) return null
   if (running) return <><PlanList plan={message.plan} /><StepList steps={steps} /></>
-  const files = [...new Set(steps.filter(step => step.status === 'ok' && step.file).map(step => step.file!))]
+  const files = [...new Set(steps.filter(step => step.status === 'ok').flatMap(step => [...(step.file ? [step.file] : []), ...(step.files || [])]))]
   const failed = steps.filter(step => step.status === 'failed').length
   const work = steps.filter(step => !/^(切换服务|任务：|制定计划|重新规划|更新计划|核对完成标准)/.test(step.label)).length
   // Which service answered matters to the user, so a switch stays visible.
@@ -61,10 +61,20 @@ export function WorkProcess({ message, running }: { message: Message; running: b
   </>
 }
 
+// Pictures and videos open right in the conversation; everything else is a file card.
+const IMAGE_FILE = /.(png|jpe?g|webp|gif|bmp)$/i, VIDEO_FILE = /.(mp4|webm|m4v|mov)$/i
+export const mediaUrl = (file: string) => 'memory://app/__media?path=' + encodeURIComponent(file)
+
 function FileResult({ file }: { file: string }) {
   const [note, setNote] = useState('')
+  const [broken, setBroken] = useState(false)
+  const media = IMAGE_FILE.test(file) ? 'image' : VIDEO_FILE.test(file) ? 'video' : ''
   const name = file.split(/[\\/]/).pop() || file
   const act = async (open: boolean) => { setNote(''); try { await (open ? window.memoryDesktop?.openFile(file) : window.memoryDesktop?.revealFile(file)) } catch (error) { setNote(cleanError(error)) } }
+  if (media && !broken) return <figure className="media-result">
+    {media === 'image' ? <img src={mediaUrl(file)} alt={name} loading="lazy" onError={() => setBroken(true)} /> : <video src={mediaUrl(file)} controls preload="metadata" onError={() => setBroken(true)} />}
+    <figcaption><span title={file}>{name}</span>{window.memoryDesktop && <><button type="button" onClick={() => void act(true)}>{t("打开")}</button><button type="button" onClick={() => void act(false)}><FolderOpen size={13} />{t("在文件夹中显示")}</button></>}{note && <small className="error-text">{note}</small>}</figcaption>
+  </figure>
   return <div className="file-result">
     <FileText size={22} weight="duotone" />
     <div><b>{name}</b><small title={file}>{file}</small>{note && <small className="error-text">{note}</small>}</div>

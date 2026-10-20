@@ -1,7 +1,7 @@
 // Task-local discovery over already-authorized adapters. Loading a definition never grants permission.
 const DISCOVER = { type: 'function', function: { name: 'discover_tools', description: '按当前任务发现并加载可用工具。找不到合适工具时先调用；返回真实可用能力、参数和权限说明。不会授予新权限，也不会执行操作。', parameters: { type: 'object', properties: {
   query: { type: 'string', description: '需要完成的具体操作，例如“操作已打开的窗口”“读取连接器资料”' },
-  group: { type: 'string', enum: ['files', 'web', 'desktop', 'shell', 'memory', 'connectors'] },
+  group: { type: 'string', enum: ['files', 'web', 'desktop', 'shell', 'memory', 'connectors', 'media'] },
   names: { type: 'array', items: { type: 'string' }, maxItems: 12, description: '已知工具名时可精确加载' },
   limit: { type: 'integer', minimum: 1, maximum: 24 },
 }, additionalProperties: false } } };
@@ -13,9 +13,11 @@ const groups = {
   shell: /命令|终端|脚本|编译|测试|代码|开发|shell|command|code|script|build|test/i,
   memory: /记住|记忆|偏好|经验|方法|技能|memory|remember|recall|skill/i,
   connectors: /连接器|插件|账户|邮件|日历|连接|connector|plugin|slack|notion|outlook|calendar|mcp/i,
+  media: /图片|图像|配图|插图|海报|封面|画一|画个|生成图|视频|短视频|动画|抖音|tiktok|小红书|ins|instagram|image|picture|photo|poster|illustration|video|clip|animation/i,
 };
 function groupFor(name, view) {
   if (name.startsWith('mcp_')) return 'connectors';
+  if (name === 'generate_image' || name === 'generate_video') return 'media';
   if (/^(find_app|launch_app|open_url|list_windows|uia_|observe|screenshot|click|type_text|press_keys|scroll|drag|find_text|click_text|read_window_text|wait_for|zoom|inspect_window)/.test(name)) return 'desktop';
   if (name === 'run_command') return 'shell';
   if (/^(remember|recall|save_requirements|save_skill|run_skill|save_playbook|domain_knowledge|record_observations|propose_principle|start_experiment|record_experiment_result)/.test(name)) return 'memory';

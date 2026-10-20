@@ -15,7 +15,7 @@ export type ChatResult = { requirementsCheck?: RequirementsCheck; service?: Serv
 export type CoreSession = { session: string; user_id: string; latest_message_preview: string; latest_message_at: string; message_count: number }
 export type Message = { requirementsCheck?: RequirementsCheck; service?: ServiceSelection; id: string; role: 'user' | 'assistant'; content: string; coreWorkId?: string; taskEvidence?: { workId: string; revision: number; receipts: WorkReceipt[] }; subject?: { route: string; passed: boolean | null; localUnderstanding: boolean; skill: string | null; modelCalls: number | null }; images?: string[]; error?: boolean; usage?: number; sample?: 'archive'; source?: 'ai' | 'core'; core?: CoreReceipt; warning?: string; raw?: { text: string; attachments: Attachment[] }; artifacts?: import('./PreviewPane').Preview[]; steps?: ToolStep[]; plan?: PlanItem[]; memoryUsed?: { id: string; text: string; kind: string }[]; playbooksUsed?: { id: string; title: string }[]; learned?: LearnedItem[]; vote?: 'up' | 'down' }
 export type PlanItem = NodeAssignment & { text: string; status: 'pending' | 'doing' | 'done' | 'blocked'; id?: string; depends_on?: string[]; expect?: string; do?: string; runtime_status?: string; verification?: { passed?: boolean; unmet?: string[]; reason?: string } }
-export type ToolStep = { label: string; status: 'running' | 'ok' | 'failed'; error?: string; file?: string }
+export type ToolStep = { label: string; status: 'running' | 'ok' | 'failed'; error?: string; file?: string; files?: string[] }
 export type SkillStep = { op: string; target?: unknown; window?: string; text?: string; keys?: string }
 export type Skill = { id: string; title: string; trigger: string; app: string; params: { name: string; description: string; example: string }[]; steps: SkillStep[]; uses: number; successes: number; failures: number; lastError: string; createdAt: string; lastUsed?: string }
 export type SubjectTask = { id: string; request: string; status: 'running' | 'done' | 'unverified' | 'interrupted'; route: string; intent: { goal: string; kind: string; done_criteria: { check: string; target?: string; value?: string }[] }; verification: { passed: boolean; unmet: string[] } | null; createdAt: string }
@@ -44,7 +44,8 @@ export type Trace = { id: string; sessionId: string; title: string; time: string
 export type ConnectionSettings = { endpoint: string; model: string; coreUrl: string; hasApiKey: boolean; hasCoreToken: boolean }
 export type Strength = 'strong' | 'fast' | 'cheap' | 'vision' | 'code' | 'long'
 export type AgentRole = 'researcher' | 'coder' | 'operator' | 'writer' | 'reviewer' | 'planner' | 'verifier' | 'learner'
-export type ProviderProfile = { id: string; name: string; endpoint: string; model: string; hasApiKey: boolean; strengths: Strength[]; note: string; maxConcurrent: number; noFailover: boolean }
+export type ServiceKind = 'chat' | 'image' | 'video'
+export type ProviderProfile = { kind?: ServiceKind; protocol?: string; id: string; name: string; endpoint: string; model: string; hasApiKey: boolean; strengths: Strength[]; note: string; maxConcurrent: number; noFailover: boolean }
 export type ServiceHealth = { calls: number; ok: number; consecutiveFailures: number; lastErrorCode: string; medianMs: number | null; coolingUntil: number }
 export type ProviderInsight = { inferred: Record<string, Strength[]>; health: Record<string, ServiceHealth>; now: number }
 export type ProviderStore ={ profiles: ProviderProfile[]; defaultId: string; routes: Partial<Record<AgentRole, string>>; failover: boolean }
@@ -102,7 +103,7 @@ declare global {
       coreHistory(session: string): Promise<{ ok: boolean; items: { record_id: string; role: 'user' | 'assistant'; content: string; created_at: string }[] }>
       learningState(): Promise<unknown>
       selectDesktop(): Promise<DesktopSelection>
-      onToolReceipt(callback: (value: { id: string; phase: string; operation: string; label?: string; ok?: boolean; error?: string; file?: string; workId?: string; revision?: number; receipt?: WorkReceipt }) => void): () => void
+      onToolReceipt(callback: (value: { id: string; phase: string; operation: string; label?: string; ok?: boolean; error?: string; file?: string; files?: string[]; workId?: string; revision?: number; receipt?: WorkReceipt }) => void): () => void
       assistantState(): Promise<AssistantState>
       workDetail(id: string): Promise<AssistantWork | null>
       saveProfile(value: OwnerProfile): Promise<{ profile: OwnerProfile }>
@@ -201,7 +202,7 @@ declare global {
       onConnectors(callback: (value: Connector[]) => void): () => void
       providers(): Promise<ProviderStore>
       saveProviders(value: { profiles: ProviderDraft[]; defaultId: string; routes: ProviderStore['routes']; failover: boolean }): Promise<ProviderStore>
-      testAI(value: { endpoint?: string; model?: string; apiKey?: string; profileId?: string }): Promise<{ ok: boolean; models: string[]; modelChecked: boolean; listError?: string }>
+      testAI(value: { kind?: ServiceKind; endpoint?: string; model?: string; apiKey?: string; profileId?: string }): Promise<{ ok: boolean; models: string[]; modelChecked: boolean; generation?: boolean; listError?: string }>
       listModels(value: { endpoint?: string; apiKey?: string; profileId?: string }): Promise<{ models: string[]; url: string }>
       providerInsight?(items: { id: string; model: string; endpoint: string }[]): Promise<ProviderInsight>
       onMemoryUsed(callback: (value: { id: string; memories: { id: string; text: string; kind: string }[]; playbooks: { id: string; title: string }[] }) => void): () => void
