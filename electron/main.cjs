@@ -584,6 +584,7 @@ async function runDaily({ id, session, request, messages, signal, agent, progres
     if (canonical) coreTurns--;
   }
 }
+handle('cognition:state', () => coreGet('/api/v1/cognition/state'));
 handle('subject:state', async () => {
   try {
     const state = await coreGet('/api/v1/assistant/state');

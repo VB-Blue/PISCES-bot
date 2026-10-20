@@ -489,6 +489,19 @@ const usableSkill = item => !((item.failures || 0) >= 3 && (item.failures || 0) 
 const stats = () => ({ memories: state.memories.length, playbooks: state.playbooks.length, skills: state.skills.length, turns: history.length, pinned: state.memories.filter(item => item.pinned).length, lessons: state.memories.filter(item => item.kind === 'lesson').length, core: linkStatus() });
 function historySearch(query, k = 20) { return searchHistory(query, k); }
 
+// Domain cognition has no local fallback: the core alone judges and learns, so a call fails clearly when it is away.
+async function coreCall(route, body, timeoutMs = 15000) {
+  if (!core) throw new Error('记忆体未连接，无法使用领域认知');
+  try {
+    const result = await core.request(route, body, { timeoutMs });
+    coreState = { ...coreState, online: true, error: '' };
+    return result;
+  } catch (error) {
+    if (!/HTTP (400|409)/.test(String(error.message))) coreState = { ...coreState, online: false, error: String(error?.message || error).slice(0, 300), at: new Date().toISOString() };
+    throw error;
+  }
+}
+
 // Core-first readers. Each falls back to the local cache when the core is not reachable.
 async function prepareContext(query, { goals = [], session = '' } = {}) {
   const exclude = requirements?.status().available ? requirements.list().map(item => item.legacyMemoryId).filter(Boolean) : [];
@@ -522,4 +535,4 @@ function captureRequirements(message, session = '') {
   return items.length ? saveRequirements(items, { source: 'user', session }) : [];
 }
 
-module.exports = { init, flush, sync, linkStatus, prepareContext, searchAsync, historySearchAsync, addSkill, listSkills, getSkill, deleteSkill, recordSkillRun, getProfile, setProfile, undoProfile, recordTrajectory, addMemory, updateMemory, deleteMemory, addPlaybook, updatePlaybook, deletePlaybook, recordTurn, search, buildContext, feedback, listMemories, listPlaybooks, stats, historySearch, tokens, similarity, KINDS, listRequirements, saveRequirements, requirementSnapshot, assertRequirementsCurrent, recordRequirementCheck, captureRequirements };
+module.exports = { init, flush, sync, linkStatus, coreCall, prepareContext, searchAsync, historySearchAsync, addSkill, listSkills, getSkill, deleteSkill, recordSkillRun, getProfile, setProfile, undoProfile, recordTrajectory, addMemory, updateMemory, deleteMemory, addPlaybook, updatePlaybook, deletePlaybook, recordTurn, search, buildContext, feedback, listMemories, listPlaybooks, stats, historySearch, tokens, similarity, KINDS, listRequirements, saveRequirements, requirementSnapshot, assertRequirementsCurrent, recordRequirementCheck, captureRequirements };

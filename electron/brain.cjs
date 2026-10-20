@@ -30,6 +30,14 @@ const LONG = `
 - 关键发现（路径、数据、结论、来源）及时写进 update_plan 的步骤说明里。上下文很长时，较早的过程会被压缩成“工作记录”，只有写下来的东西会保留。
 - 被拒绝或受阻时，换一条路完成剩下的部分，最后说明哪些没做。`;
 
+const COGNITION = `
+## 和记忆体分工
+- 记忆体负责判断和积累：这个领域懂不懂、先学什么、哪条规律可信、对照结果说明了什么。你负责看、读、写、操作，并如实上报看到的数据。
+- 任务里有“记忆体的认知判断”时按它做：要求先学，就先完成学习计划再交付；要求对照，就按对照设计做并记录每次结果。
+- 研究同行或样本时，逐条记录可观察的特征和同一个效果指标，用 record_observations 交给记忆体；规律由记忆体从数据里算出来，不要自己总结成结论。
+- 你的推测用 propose_principle（source=model）记下，它只是待检验的设想；用户亲口说的经验才用 source=owner。
+- 对照实践的结果出来后，用 record_experiment_result 记录实际数字；没看到的数据不能编。`;
+
 const MEMORY = `
 ## 记住用户
 - 用户透露稳定的偏好、身份、习惯、项目、常用软件、长期目标，或说“记住”时，调用 remember。临时任务、密码、密钥、证件号不记。
@@ -82,6 +90,7 @@ function buildSystemPrompt({ persona = {}, profile = '', context = '', requireme
   parts.push(UNDERSTAND, WORK, LONG);
   if (has('discover_tools')) parts.push('\n## 主动发现能力\n工具按当前任务加载。需要的能力没有列出时，用 discover_tools 按操作、工具名或能力组搜索；它会将真实可用工具加入下一轮。先自己查找和选择，连接或授权确有缺口时再说明。加载工具不新增权限。');
   if (has('remember')) parts.push(MEMORY);
+  if (has('record_observations')) parts.push(COGNITION);
   if (has('observe') || has('screenshot')) parts.push(COMPUTER);
   if (has('delegate')) parts.push(scheduling === 'canonical_work_serial_delegation' ? DELEGATE.replace('用 delegate 交给子代理并行做（同一轮一次发起多个）', '用 delegate 分配给不同角色。当前核心任务会串行提交委派操作；依赖前一结果的子任务必须先等它验收后再启动') : DELEGATE);
   parts.push(BOUNDS);

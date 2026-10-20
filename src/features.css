@@ -229,3 +229,11 @@
 .work-process > summary small { color: var(--faint); font-size: 12px; }
 .work-process[open] > summary { margin-bottom: 8px; }
 @media (max-width: 640px) { .file-result { flex-wrap: wrap; } .file-result > div { flex-basis: calc(100% - 40px); } }
+.cognition-domains { display: grid; gap: 12px; margin-bottom: 24px; }
+.cognition-domain { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.cognition-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cognition-head small { color: var(--muted); margin-left: auto; font-size: 12px; }
+.cognition-principle, .cognition-plan { margin: 4px 0; font-size: 13px; }
+.cognition-principle span, .cognition-plan span { display: inline-block; min-width: 92px; margin-right: 8px; color: var(--muted); font-size: 12px; }
+.cognition-principle.confirmed span { font-weight: 600; }
+.cognition-principle.refuted { color: var(--muted); text-decoration: line-through; }

@@ -18,13 +18,14 @@ function groupFor(name, view) {
   if (name.startsWith('mcp_')) return 'connectors';
   if (/^(find_app|launch_app|open_url|list_windows|uia_|observe|screenshot|click|type_text|press_keys|scroll|drag|find_text|click_text|read_window_text|wait_for|zoom|inspect_window)/.test(name)) return 'desktop';
   if (name === 'run_command') return 'shell';
-  if (/^(remember|recall|save_requirements|save_skill|run_skill|save_playbook)/.test(name)) return 'memory';
+  if (/^(remember|recall|save_requirements|save_skill|run_skill|save_playbook|domain_knowledge|record_observations|propose_principle|start_experiment|record_experiment_result)/.test(name)) return 'memory';
   if (/^(web_search|news_search|fetch_url|browser_)/.test(name)) return 'web';
   return view.groupOf?.(name) === 'control' ? 'desktop' : view.groupOf?.(name) === 'commands' ? 'shell' : 'files';
 }
 
 function createCapabilityView(view, { request = '' } = {}) {
-  const loaded = new Set(['get_environment', 'recall', 'remember', 'save_requirements', 'update_plan', 'delegate', 'background_task']);
+  // Reporting observations and trial results to the core is part of every task, so these are always at hand.
+  const loaded = new Set(['get_environment', 'recall', 'remember', 'save_requirements', 'update_plan', 'delegate', 'background_task', 'domain_knowledge', 'record_observations', 'propose_principle', 'start_experiment', 'record_experiment_result']);
   const definitions = () => (view.definitions || []).filter(item => item?.function?.name !== 'discover_tools' && view.has(item.function.name));
   function selectTask(intent) {
     const text = typeof intent === 'string' ? intent : [intent?.goal, intent?.kind, intent?.deliverable, intent?.presentation, ...(intent?.apps || [])].filter(Boolean).join(' ');

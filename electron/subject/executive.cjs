@@ -18,6 +18,29 @@ const normalize = text => String(text || '').toLowerCase().replace(/\s+/g, '');
 
 function createExecutive({ store, memory, runAssistant, getRoots = () => [], similarity }) {
   // ---- what the subject knows before asking anyone ----
+  // ---- what the core knows about the field of this task ----
+  async function assessDomain(request, intent) {
+    if (!memory.coreCall) return null;
+    try {
+      const result = await memory.coreCall('/api/v1/cognition/assess', { task: request, ...(intent.domain ? { domain: intent.domain } : {}) }, 8000);
+      return result?.domain ? result : null;
+    } catch { return null; }
+  }
+  const LEVELS = { unknown: '不了解', novice: '入门', practiced: '有经验', proficient: '熟练' };
+  const compactAssessment = item => ({ domain: item.domain.name, level: item.level, decision: item.decision, reason: item.reason, strategy: item.strategy?.name || null,
+    plan: item.plan ? { strategy_id: item.plan.strategy_id, steps: item.plan.steps } : null, principles: (item.principles || []).map(p => ({ id: p.id, statement: p.statement, status: p.status })),
+    refuted: item.refuted || [], running_experiments: item.running_experiments || [] });
+  function cognitionBrief(item) {
+    if (!item?.domain) return '';
+    const lines = ['\n\n## 记忆体的认知判断（按此执行）', '领域「' + item.domain.name + '」，水平：' + (LEVELS[item.level] || item.level) + '。' + item.reason];
+    if (item.plan?.steps?.length && ['learn_first', 'experiment'].includes(item.decision)) lines.push((item.decision === 'learn_first' ? '先完成学习计划，再用学到的规律交付' : '这次按对照设计交付') + '（' + (item.strategy?.name || '') + '）：\n' + item.plan.steps.map((step, index) => (index + 1) + '. ' + step).join('\n'));
+    if (item.principles?.length) lines.push('可用的规律（编号用于登记对照）：\n' + item.principles.map(p => '- [' + p.status_label + '] ' + p.statement + '（' + p.id + '）').join('\n'));
+    if (item.refuted?.length) lines.push('在用户这里不成立，不要再用：\n' + item.refuted.map(text => '- ' + text).join('\n'));
+    if (item.running_experiments?.length) lines.push('进行中的对照，这次的结果要记录进去：\n' + item.running_experiments.map(e => '- ' + e.id + '：' + e.hypothesis + '（' + e.arms.map(arm => arm.name + ' ' + arm.recorded + '/' + e.min_per_arm).join('，') + '）').join('\n'));
+    lines.push('交给记忆体时领域名称用「' + item.domain.name + '」。');
+    return lines.join('\n');
+  }
+
   // The core assembles related memories when it is linked; a plain memory object assembles them locally.
   const relatedMemories = async request => (memory.prepareContext ? await memory.prepareContext(request, {}) : memory.buildContext(request, {})).text.slice(0, 4000);
   async function contextFor({ request, messages, tools, attachments = '', sourceChanges = [], intent = null }) {
@@ -188,9 +211,17 @@ function createExecutive({ store, memory, runAssistant, getRoots = () => [], sim
     // 2. A task: the subject owns it.
     const task = await store.createTask({ request, session, intent });
     say('任务：' + intent.goal.slice(0, 60) + '（完成标准 ' + intent.done_criteria.length + ' 条）');
+    // The core judges whether it knows this field well enough; if not, learning comes first and is part of "done".
+    const assessment = await assessDomain(request, intent);
+    if (assessment) {
+      say('记忆体判断：' + assessment.reason.slice(0, 90) + (assessment.strategy ? '（' + assessment.strategy.name + '）' : ''));
+      const learning = assessment.decision === 'learn_first' && assessment.plan;
+      const proof = learning ? (assessment.plan.strategy_id === 'ask_owner' ? 'propose_principle' : 'record_observations') : assessment.decision === 'experiment' ? 'start_experiment' : null;
+      if (proof && !intent.done_criteria.some(item => item.check === 'tool_succeeded' && item.target === proof)) intent.done_criteria.push({ check: 'tool_succeeded', target: proof });
+    }
     // The subject sets the executor's budget from the size of the job, so it delivers instead of researching forever.
-    const budget = { one: 15, few: 35, many: 70 }[intent.steps] || 35;
-    const brief = () => '## PISCES AI交给你的任务\n目标：' + intent.goal + '\n交付物：' + intent.deliverable + '\n完成标准：\n' + intent.done_criteria.map(item => '- ' + describeCriterion(item)).join('\n') + (intent.assumptions.length ? '\n已做的假设：' + intent.assumptions.join('；') : '') + (Object.keys(intent.params).length ? '\n具体值：' + JSON.stringify(intent.params) : '') + '\n预算：这件事最多约 ' + budget + ' 轮工具调用。素材够用就开始产出交付物，先交付一个完整可用的版本，再用剩余预算补充；不要无止境地搜索或反复核实同一件事。\n你是执行者：直接动手完成，用 update_plan 跟进计划；完成后简要说明做了什么、结果在哪。PISCES AI会按完成标准核对你的结果。';
+    const budget = ({ one: 15, few: 35, many: 70 }[intent.steps] || 35) + (assessment?.decision === 'learn_first' ? 40 : assessment?.decision === 'experiment' ? 15 : 0);
+    const brief = () => '## PISCES AI交给你的任务\n目标：' + intent.goal + '\n交付物：' + intent.deliverable + '\n完成标准：\n' + intent.done_criteria.map(item => '- ' + describeCriterion(item)).join('\n') + (intent.assumptions.length ? '\n已做的假设：' + intent.assumptions.join('；') : '') + (Object.keys(intent.params).length ? '\n具体值：' + JSON.stringify(intent.params) : '') + '\n预算：这件事最多约 ' + budget + ' 轮工具调用。素材够用就开始产出交付物，先交付一个完整可用的版本，再用剩余预算补充；不要无止境地搜索或反复核实同一件事。\n你是执行者：直接动手完成，用 update_plan 跟进计划；完成后简要说明做了什么、结果在哪。PISCES AI会按完成标准核对你的结果。' + cognitionBrief(assessment);
 
     const nodeMode = forceTask && intent.steps !== 'one';
     const nodeCriteria = node => {
@@ -393,7 +424,7 @@ function createExecutive({ store, memory, runAssistant, getRoots = () => [], sim
       if (route !== 'direct' && !(nodeMode && attempt === 0 && task.plan?.length)) {
         try {
           counter.calls++;
-          steps = normalizePlan((await cognition.plan({ target, intent, context: { ...(await contextFor({ request, messages, tools, attachments, intent })), what_has_worked_for_this_kind: store.routeStats(intent.kind) }, failure, signal })).steps, task.plan);
+          steps = normalizePlan((await cognition.plan({ target, intent, context: { ...(await contextFor({ request, messages, tools, attachments, intent })), what_has_worked_for_this_kind: store.routeStats(intent.kind), ...(assessment ? { core_cognition: compactAssessment(assessment) } : {}) }, failure, signal })).steps, task.plan);
         } catch (error) { if (signal?.aborted || nodeMode || ['CORE_ACTION_UNCERTAIN', 'CORE_AUTHORITY_LOST', 'CHECKPOINT_PERSIST_FAILED'].includes(error.code)) throw error; steps = []; }
         if (steps.length) {
           // Execution may degrade when the planner is unavailable. Losing task authority may not.
@@ -438,6 +469,7 @@ function createExecutive({ store, memory, runAssistant, getRoots = () => [], sim
     }
     await store.updateTask(task, { status: outcome.passed ? 'done' : 'unverified', route, verification: { passed: outcome.passed, unmet: outcome.unmet, checks: outcome.checks, modelJudgement: outcome.judged || null, ...(outcome.requirements ? { requirements: { recordPath: outcome.requirements.recordPath, signature: outcome.requirements.signature, passed: outcome.requirements.passed } } : {}) }, result: String(result?.text || '').slice(0, 8000) });
     await store.recordExperience({ request, kind: intent.kind, intent, route, passed: outcome.passed, unmet: outcome.unmet, skillId: skillUsed?.id || learnedSkill?.id || null, modelCalls: counter.calls, localUnderstanding, contextSignature, durationMs: Date.now() - started });
+    if (assessment?.domain) await memory.coreCall('/api/v1/cognition/practice', { request_id: 'practice:' + task.id, domain: assessment.domain.id, passed: !!outcome.passed }).catch(() => {});
 
     const report = outcome.passed
       ? '\n\n---\n✅ PISCES AI已核对：' + intent.done_criteria.map(describeCriterion).join('；')
