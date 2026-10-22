@@ -120,6 +120,7 @@ npm test
 ├── scripts/                # 冒烟验证、图标生成与打包脚本
 ├── tests/                  # 自动化单测与回归测试套件
 ├── package.json            # 项目依赖与运行脚本
+├── LICENSE                 # 开源许可与版权保护协议全文
 └── README.md               # 项目主说明文档
 ```
 
@@ -131,6 +132,24 @@ npm test
 - **AI 服务**：添加您的模型服务地址、API Key 与模型名称，可为不同服务指定“擅长”标签（如编码、文本、图像、视频）。
 - **核心连接**：配置本地记忆体核心通信地址（默认 `http://127.0.0.1:18789`）。
 - **本机能力**：管理桌面控制、浏览器自动化、剪贴板与本地文件访问权限。
+
+---
+
+### 📄 开源许可与版权保护声明
+
+本项目采用 **PISCES AI 源码可用非商业及防抄袭许可协议 (PISCES AI Source-Available Non-Commercial & Anti-Plagiarism License)**。版权所有 © 2026 VB-Blue / PISCES AI。保留所有权利。
+
+- 🚫 **严禁任何商业化用途 (Strictly Non-Commercial)**：
+  - 本项目源代码、设计与衍生程序**仅供个人非商业学习、学术研究及技术评估使用**。
+  - 严禁任何形式的直接或间接商业盈利行为，包括但不限于：软件销售、商业分发、部署为收费 SaaS / API 云服务、嵌入企业盈利性生产系统或商业产品中。
+- 🛡️ **严禁抄袭剽窃与“换皮”搬运 (Anti-Plagiarism & Brand Protection)**：
+  - **禁止抄袭与换皮**：严禁直接复制本项目的核心架构、系统设计或源代码，并伪装、篡改作者署名、重命名（换皮）后公开发布或宣称为个人/第三方的原创成果。
+  - **禁止闭源包装**：严禁抽取本项目核心代码整合进其他闭源或商业竞争产品中二次分发。
+  - **必须完整保留署名**：在允许的学术研究或非商业引用范围内，必须显著保留原作者版权声明、许可证全文以及项目开源地址。
+- ⚖️ **法律追责保留**：
+  - 任何未经授权的商业化使用、抄袭剽窃或侵权分发行为将导致许可自动终止。著作权人保留依据《中华人民共和国著作权法》、《中华人民共和国反不正当竞争法》以及国际版权公约（如 DMCA、伯尔尼公约）追究侵权者全部法律责任的权利（包括申请平台侵权封禁下架、追索侵权所得及法定损害赔偿）。
+
+完整法律条款请参阅根目录下的 [LICENSE](LICENSE) 文件。
 
 ---
 
@@ -245,6 +264,7 @@ npm test
 ├── scripts/                # Smoke tests, icon generation & packaging utilities
 ├── tests/                  # Unit and integration test suites
 ├── package.json            # Package configuration and dependencies
+├── LICENSE                 # Full license text
 └── README.md               # Main bilingual documentation
 ```
 
@@ -259,6 +279,19 @@ Open **Settings** (gear icon in the lower-left corner) after first launch:
 
 ---
 
-### 📄 License
+### 📄 License & Intellectual Property Protection
 
-Proprietary / All rights reserved.
+This project is distributed under the **PISCES AI Source-Available Non-Commercial & Anti-Plagiarism License**.
+Copyright © 2026 VB-Blue / PISCES AI. All Rights Reserved.
+
+- 🚫 **Strictly Non-Commercial Use**:
+  - The source code, system designs, and compiled binaries are provided **solely for personal study, academic research, and evaluation**.
+  - Any commercial use, monetization, paid SaaS/API hosting, software resale, or deployment within revenue-generating business operations is **strictly prohibited** without explicit written permission from the copyright holder.
+- 🛡️ **Anti-Plagiarism & Brand Protection**:
+  - **No Rebranding or "Skinning"**: You may NOT copy the codebase, architecture, or user experience and redistribute it under another name, disguised authorship, or as a proprietary competing product.
+  - **No Closed-Source Derivatives**: Extracting core components to bundle into closed-source or commercial offerings is prohibited.
+  - **Mandatory Attribution**: All permitted non-commercial references or academic citations must conspicuously retain the original copyright notice, full license text, and repository link.
+- ⚖️ **Legal Enforcement**:
+  - Any breach automatically terminates all permissions. The author reserves all rights to seek statutory damages, injunctive relief, DMCA takedowns, and full legal remedies under applicable domestic and international copyright laws.
+
+For complete terms and conditions, please refer to the [LICENSE](LICENSE) file.

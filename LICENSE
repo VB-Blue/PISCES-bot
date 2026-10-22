@@ -1,0 +1,91 @@
+PISCES AI Source-Available Non-Commercial & Anti-Plagiarism License
+(PISCES AI 源码可用非商业及防抄袭许可协议)
+
+Version 1.0 (2026)
+Copyright (c) 2026 VB-Blue / PISCES AI (vip.choas@gmail.com). All Rights Reserved.
+版权所有 © 2026 VB-Blue / PISCES AI。保留所有权利。
+
+================================================================================
+PART 1: ENGLISH TERMS
+================================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to inspect,
+download, compile, and run the Software subject to the following STRICT conditions:
+
+1. NON-COMMERCIAL USE ONLY (严禁商业用途)
+   You may use, study, research, and evaluate the Software solely for personal,
+   non-commercial, and educational purposes.
+   ANY commercial use, commercial exploitation, or monetization of the Software,
+   in whole or in part, directly or indirectly, is STRICTLY PROHIBITED.
+   This includes, but is not limited to:
+   a. Selling, licensing, renting, leasing, or charging fees for the Software
+      or any derivative work.
+   b. Providing the Software as a hosted service, Software-as-a-Service (SaaS),
+      Application Programming Interface (API), or cloud service for financial gain.
+   c. Bundling or incorporating the Software into any commercial product, service,
+      or company-internal production workflow without a separate commercial license.
+
+2. ANTI-PLAGIARISM & PROPRIETARY PROTECTION (严禁抄袭与换皮搬运)
+   a. Prohibition of Plagiarism & Rebranding: You may NOT copy, reproduce,
+      republish, mirror, distribute, or distribute modified versions of this
+      Software or any of its core algorithms, architecture, or codebase under a
+      different name, trademark, or false authorship ("rebranding", "skinning",
+      or claiming ownership).
+   b. Attribution & Notice Retention: All copies or substantial portions of the
+      Software, including any authorized academic or research citations, must
+      conspicuously retain this copyright notice, this license text, and original
+      author attribution without alteration or obfuscation.
+   c. No Closed-Source Derivatives: You may NOT take substantial code, designs,
+      or algorithms from this Software and redistribute them within a closed-source,
+      proprietary, or competing software project.
+
+3. TRADEMARK & BRANDING
+   This license does not grant permission to use the trade names, trademarks,
+   service marks, or product names of the Licensor (including "PISCES AI",
+   "PISCES-bot", associated logos, or brand identity), except as required for
+   reasonable and customary use in describing the origin of the Software.
+
+4. NO WARRANTY & LIMITATION OF LIABILITY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+   OR OTHER DEALINGS IN THE SOFTWARE.
+
+5. TERMINATION & ENFORCEMENT
+   Any use, copying, distribution, or commercial exploitation in violation of this
+   License automatically terminates your rights hereunder. The Licensor reserves
+   all rights to seek injunctive relief, statutory damages, DMCA copyright takedowns,
+   and any other legal remedies available under applicable domestic and international
+   copyright laws.
+
+================================================================================
+PART 2: 中文条款 (CHINESE TERMS - 具同等法律约束力)
+================================================================================
+
+本软件及相关文档（以下简称“本软件”）由著作权人（VB-Blue / PISCES AI）依法享有全部知识产权。
+任何个人获取本软件副本，在严格遵守以下条款的前提下，享有查看、下载、编译和运行本软件的权利：
+
+一、 严格非商业使用限制 (Non-Commercial Use Only)
+1. 仅限非商业目的：本软件仅供个人学习交流、学术研究与非商业评估目的使用。
+2. 严禁商业化牟利：未经著作权人明确书面授权，严禁任何形式的直接或间接商业利用，包括但不限于：
+   - 将本软件、其派生版本或核心组件进行销售、转授权、出租、有偿转让；
+   - 将本软件包装为商业化软件服务（SaaS）、API 接口或云服务供第三方付费使用；
+   - 将本软件用于企业营利性生产经营环境或作为收费产品的一部分提供。
+
+二、 防抄袭与知识产权保护 (Anti-Plagiarism & IP Protection)
+1. 严禁抄袭与“换皮”：严禁直接复制、剽窃本软件的源代码、核心算法架构、系统设计或界面交互，
+   并将其伪装、篡改作者署名、重命名（换皮）后公开发布或宣称为个人/第三方的原创成果。
+2. 完整保留署名与许可：任何在允许范围内的引用、学术研究展示或非商业分发，必须完整、显著地保留原作者的版权声明、本许可协议全文及项目源链接（https://github.com/VB-Blue/PISCES-bot）。
+3. 禁止闭源二次分发：严禁抽取本软件的核心代码整合进其他闭源项目或商业项目中分发。
+
+三、 商标与品牌权益
+本许可协议不包含任何商标使用许可。“PISCES AI”、“PISCES-bot”、应用图标及相关品牌标识均属著作权人所有，未经书面许可不得用于任何商业推广、背书或商业宣传。
+
+四、 侵权追责与违约终止
+凡违反本协议任何条款（包括但不限于抄袭剽窃、未经许可商业化、篡改版权署名等行为），授权即刻自动终止。著作权人保留根据《中华人民共和国著作权法》、《中华人民共和国反不正当竞争法》及国际版权公约（如《伯尔尼公约》、DMCA 机制等）采取一切法律手段维护合法权益的权利，包括向平台申请侵权下架封禁、追偿侵权所得及损害赔偿。
+
+五、 免责声明
+本软件按“现状”（AS IS）提供，不包含任何明示或暗示的担保。在法律允许的最大范围内，作者不对因使用或无法使用本软件所引发的任何直接或间接损失承担责任。
