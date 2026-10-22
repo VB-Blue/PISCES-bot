@@ -5,7 +5,7 @@
   "private": true,
   "description": "AI 正常工作，核心从真实经验中成长的桌面工作台",
   "author": "PISCES AI",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "CC-BY-NC-ND-4.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
