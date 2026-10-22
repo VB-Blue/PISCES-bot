@@ -1,203 +1,161 @@
 # PISCES AI
 
 <p align="center">
-  <strong>AI 正常工作，核心从真实经验中成长的桌面工作台</strong><br>
-  <em>A desktop workbench where AI does real work and the core grows from real experience.</em>
+  <strong>A desktop workbench where AI does real work and the core grows from real experience.</strong>
 </p>
 
 <p align="center">
-  <a href="#-中文">🇨🇳 中文</a> &nbsp;|&nbsp; <a href="#-english">🇬🇧 English</a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D18.0.0-brightgreen" alt="Node.js">
+  <img src="https://img.shields.io/badge/Electron-44.5.1-informational" alt="Electron">
+  <img src="https://img.shields.io/badge/React-19.3.0-blue" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5.9.3-blue" alt="TypeScript">
 </p>
 
 ---
 
-## 🇨🇳 中文
+## 📖 Overview
 
-### 📖 项目概述
+**PISCES AI** is an advanced desktop workbench engineered for real-world autonomous productivity. Unlike ordinary chat wrappers, PISCES AI features an independent background daemon, autonomous domain cognition, a persistent memory core, and deep operating system control spanning native desktop automation and external browser manipulation.
 
-**PISCES AI** 是一款面向专业工作场景的桌面智能工作台。与常规的套壳聊天客户端不同，PISCES AI 拥有独立的后台常驻进程、自主领域认知机制、持久化记忆体核心，以及深度的桌面控制与外部浏览器自动化执行能力。
-
-它不仅能与用户自然对话，更能承担复杂、长周期的真实业务任务：自主拆解步骤、委派子代理协同、调度合适的 AI 服务、产出可直接交付的机械证据产物，并在持续实践中不断积累经验与进化认知。
+It is purpose-built to tackle long-horizon, high-complexity tasks: decomposing multi-step goals, delegating across specialized agents, dynamically load-balancing across multi-cloud AI endpoints, and strictly verifying outcomes through physical, mechanical evidence.
 
 ---
 
-### ✨ 核心特性
+## 🏛️ System Architecture
 
-#### 1. 🧠 记忆体深度连接 (Memory Core Link)
-- **核心数据持久化**：长期记忆、技能库、行为偏好、用户画像、对话上下文与长期要求均由专用记忆体核心统一托管。
-- **离线排队与自动重连同步**：核心离线时，本地任务与状态自动排队暂存；连接恢复后平滑回传，首次连接支持历史数据全量平滑迁移。
+```mermaid
+flowchart TD
+    subgraph UI["🖥️ Desktop Workbench UI (React 19 + TypeScript + Vite)"]
+        Presence["Presence & Live Tasks"]
+        Workspaces["Multi-modal Task Workspaces"]
+        ChatMedia["Multimodal Chat & In-stream Media Playback"]
+    end
 
-#### 2. 🧭 领域认知与自主学习 (Domain Cognition)
-- **陌生领域自动研判**：理解任务后，核心主动研判自身在该专业领域的知识掌握程度。
-- **结构化自驱学习**：对缺乏经验的领域自动制定调研方案、收集样本、归纳底层规则；在后续执行中对照检验、推翻或确认规律，学习效果计入成长评分。
+    subgraph Host["⚡ Electron Host & Background Daemon (Assistant Worker)"]
+        IPC["Bidirectional IPC Bridge"]
+        Brain["Cognitive Brain Engine & Tool Dispatcher"]
+        Router["Multi-Provider AI Service Router"]
+    end
 
-#### 3. ⚡ 多 AI 服务智能路由与容灾 (AI Service Routing)
-- **多模型供应商统一调度**：支持 OpenAI、Claude、DeepSeek、火山方舟、硅基流动、MiniMax 等主流服务商。
-- **智能场景匹配**：根据服务模型特征自动识别擅长领域；遇到连续报错、密钥失效或额度不足时自动熔断避让；当默认服务并发达到上限时无感分流，保障任务高可用。
-- **手动偏好锁定**：支持用户针对具体对话、任务或长期目标手动锁定特定 AI 服务。
+    subgraph Memory["🧠 Persistent Memory Core (Local Host - 127.0.0.1:18789)"]
+        Cognition["Autonomous Domain Cognition"]
+        Retention["Long-Term Profile & Rule Retention"]
+        Queue["Offline Queue & Auto Resumption"]
+    end
 
-#### 4. 🎨 多模态与多媒体生成 (Media Generation)
-- **文生图与文生视频**：原生接入 OpenAI 图片接口与主流视频生成服务（OpenAI 视频、火山方舟、硅基流动、MiniMax），支持自动轮询任务进度与本地归档。
-- **对话内即时预览与播放**：生成的图像直接在对话中渲染，视频支持就地流式播放与进度拖动，安全限制于授权目录。
+    subgraph AIServices["🌐 Multi-Provider AI Gateway"]
+        ChatLLM["Inference & Chat (Claude / OpenAI / DeepSeek)"]
+        ImageGen["Image Generation (/images/generations)"]
+        VideoGen["Video Generation (Volcano Ark / SiliconFlow / MiniMax)"]
+    end
 
-#### 5. 🖥️ 桌面控制与浏览器执行 (Desktop & Browser Automation)
-- **桌面视力与操作**：利用编号视觉标记、OCR 文字识别及精准窗口聚焦驱动本地软件。
-- **外部浏览器自动化**：支持深度接管 Chrome / Edge，执行元素定位、富文本输入、拖拽、上传下载及登录态持久会话。
-- **高危操作人机协同 (Human-in-the-Loop)**：涉及文件删除、敏感变更或破坏性操作前强制提示人工授权确认。
+    subgraph Execution["🤖 Physical Execution Engines"]
+        DesktopAgent["Visual Desktop Automation (OCR / Coordinate Tags)"]
+        BrowserAgent["External Browser Control (Chrome / Edge / CDP)"]
+        FileArtifacts["Evidence Generation & Verification"]
+    end
 
-#### 6. 📋 任务工作区与长期目标治理 (Task Workspaces & Long-term Goals)
-- **多状态工作区**：“此刻”看板与“一起在做”任务面板清晰呈现当前执行状态。
-- **多代理协作与委派**：支持多角色分工（规划者、执行者、核对者、研究员），支持串行与并行协同编排。
-- **长期目标与证据验收**：长期目标支持定期自动调度，坚持以机械文件事实作为交付标准，严禁无证据凭模型自述“验收通过”。
-
----
-
-### 🛠️ 快速上手
-
-#### 环境要求
-- **操作系统**：Windows 10 / 11（推荐）或 macOS / Linux（部分桌面自动化能力适配中）
-- **Node.js**：>= 18.0.0
-- **包管理器**：npm
-
-#### 安装与启动
-
-1. **克隆代码仓库**
-   ```bash
-   git clone https://github.com/VB-Blue/PISCES-bot.git
-   cd PISCES-bot
-   ```
-
-2. **安装依赖**
-   ```bash
-   npm install
-   ```
-
-3. **开发模式运行**
-   ```bash
-   # 启动 Vite 前端服务
-   npm run dev
-
-   # 启动桌面端 (构建前端并拉起 Electron)
-   npm run desktop
-   ```
-
-4. **双击启动脚本 (Windows)**
-   - 也可直接双击根目录下的 `启动 PISCES AI.cmd` 启动已部署的本地应用。
-
-#### 构建与打包
-```bash
-# 检查 TypeScript 类型并构建前端资源
-npm run build
-
-# 打包便携桌面端安装目录 (Windows x64)
-npm run pack
-```
-
-#### 运行测试
-```bash
-# 运行全部自动化测试套件
-npm test
+    UI <--> IPC
+    IPC <--> Brain
+    Brain <--> Router
+    Brain <--> Memory
+    Router --> AIServices
+    Brain --> Execution
 ```
 
 ---
 
-### 📂 目录结构
+## ✨ Key Features
 
-```text
-├── electron/               # Electron 主进程、后台常驻服务与桌面执行器
-│   ├── main.cjs            # Electron 主入口与生命周期管理
-│   ├── assistant-worker.cjs# 核心工作线程与任务执行调度
-│   ├── desktop-agent.cjs   # 桌面控制、视力识别与操作引擎
-│   ├── brain.cjs           # 系统 Prompt、工具组装与多代理分发
-│   ├── service-routing.cjs # 多 AI 服务健康探测与智能路由
-│   └── ...
-├── src/                    # 现代化 React 19 前端界面
-│   ├── App.tsx             # 应用主工作台入口
-│   ├── Presence.tsx        # “此刻”与“一起在做”状态在场看板
-│   ├── TaskWorkspace.tsx   # 任务多形态工作区
-│   ├── NewWorkForm.tsx     # 新建任务与快速调度表单
-│   └── ...
-├── scripts/                # 冒烟验证、图标生成与打包脚本
-├── tests/                  # 自动化单测与回归测试套件
-├── package.json            # 项目依赖与运行脚本
-├── LICENSE                 # 开源许可与版权保护协议全文
-└── README.md               # 项目主说明文档
+### 1. 🧠 Memory Core & Long-Term Retention
+- **Dedicated Persistence**: User preferences, skill assets, behavior guidelines, interaction histories, and cross-session mandates are managed by a linked memory core.
+- **Resilient Offline Queue**: Operations safely queue locally when disconnected, seamlessly synchronizing upon reconnection.
+
+### 2. 🧭 Autonomous Domain Cognition
+- **Self-Assessed Competence**: Before executing unfamiliar workflows, the core evaluates its knowledge depth in the relevant discipline.
+- **Hypothesis-Driven Induction**: Formulates targeted learning plans, extracts sample patterns, conducts controlled tests, and consolidates verified rules into the memory core.
+
+### 3. ⚡ Multi-Provider AI Routing & Resilience
+- **Model Specialization Routing**: Intelligently routes tasks according to model strengths (coding, complex reasoning, multimodal parsing).
+- **Circuit Breakers & Spillover**: Automatically avoids degraded or credit-exhausted endpoints, spilling over to secondary providers when default limits are reached.
+
+```mermaid
+flowchart LR
+    Start["Receive Task Request"] --> CheckPin{"User pinned<br/>specific service?"}
+    CheckPin -- Yes --> UsePinned["Use Pinned Service"]
+    CheckPin -- No --> MatchStrength["Match Model Strengths<br/>to Task Requirements"]
+    
+    MatchStrength --> HealthCheck{"Check Health & Status<br/>(Errors / Quota / Latency)"}
+    HealthCheck -- Degraded --> FallbackService["Switch to Fallback Provider"]
+    HealthCheck -- Healthy --> ConcurrencyCheck{"Default Service at<br/>Concurrency Limit?"}
+    
+    ConcurrencyCheck -- Saturated --> Spillover["Spillover to Peer Service"]
+    ConcurrencyCheck -- Available --> PrimaryService["Route to Primary Provider"]
+    
+    UsePinned --> ExecCall["Execute API Request"]
+    FallbackService --> ExecCall
+    Spillover --> ExecCall
+    PrimaryService --> ExecCall
+    
+    ExecCall --> ResultCheck{"Call Successful?"}
+    ResultCheck -- Success --> Complete["Return Output & Record Metrics"]
+    ResultCheck -- Failure/Timeout --> Penalty["Apply Failure Penalty &<br/>Trigger Automatic Failover"]
+    Penalty --> HealthCheck
 ```
 
----
+### 4. 🎨 Multimodal Media Generation
+- **Text-to-Image & Text-to-Video**: Integrates OpenAI image endpoints and major video synthesis providers (OpenAI Video, Volcano Ark, SiliconFlow, MiniMax) with background polling and automatic local storage.
+- **In-Chat Rendering & Video Scrubbing**: Inline image display and draggable video playback within authorized paths.
 
-### ⚙️ 配置说明
+### 5. 🖥️ Desktop Control & Browser Automation
+- **Visual Desktop Execution**: Numbered overlay tags, OCR fallback, and window targeting to drive native software with mandatory human-in-the-loop approvals for sensitive operations.
+- **External Browser Automation**: Full Chrome / Edge integration for precise DOM navigation, rich text input, drag-and-drop, and session persistence.
 
-首次启动后，在主界面左下角打开 **设置**：
-- **AI 服务**：添加您的模型服务地址、API Key 与模型名称，可为不同服务指定“擅长”标签（如编码、文本、图像、视频）。
-- **核心连接**：配置本地记忆体核心通信地址（默认 `http://127.0.0.1:18789`）。
-- **本机能力**：管理桌面控制、浏览器自动化、剪贴板与本地文件访问权限。
-
----
-
-### 📄 开源许可证
-
-本项目采用 [CC BY-NC-ND 4.0](LICENSE)（知识共享 署名-非商业性使用-禁止演绎 4.0 国际）许可协议。
-
-- **署名 (BY)**：使用时需标明原作者署名及项目来源。
-- **非商业性使用 (NC)**：不得用于任何商业目的。
-- **禁止演绎 (ND)**：不得分发修改或二次创作后的衍生版本。
-
-详见 [LICENSE](LICENSE) 文件。
-
----
-
-<br>
-
-## 🇬🇧 English
-
-### 📖 Overview
-
-**PISCES AI** is a professional-grade intelligent desktop workbench. Unlike conventional chat wrappers, PISCES AI is backed by an independent persistent background daemon, autonomous domain cognition, a linked long-term memory core, and deep operating system control covering desktop GUI and external browser automation.
-
-PISCES AI is designed to carry out complex, multi-stage real-world workloads: decomposing goals, delegating tasks among specialized agents, balancing requests across multiple AI services, delivering mechanically verifiable evidence, and continuously evolving its cognition through practice.
-
----
-
-### ✨ Key Features
-
-#### 1. 🧠 Memory Core & Long-Term Intelligence
-- **Persistent Core State**: Profile attributes, learned skills, preferences, historical context, and persistent cross-session rules are maintained by a dedicated memory core.
-- **Offline Queue & Seamless Resumption**: Offline changes queue safely on the local node and sync back immediately upon reconnection.
-
-#### 2. 🧭 Domain Cognition & Autonomous Learning
-- **Unfamiliar Domain Assessment**: The memory core actively evaluates its own domain knowledge depth before executing novel tasks.
-- **Hypothesis-Driven Growth**: Formulates structured research plans, samples data, induces underlying principles, and validates them via controlled trials.
-
-#### 3. ⚡ Multi-Provider AI Routing & Resilience
-- **Unified Multi-Service Management**: Seamlessly coordinates OpenAI, Claude, DeepSeek, SiliconFlow, Volcano Ark, MiniMax, and custom endpoints.
-- **Dynamic Spillover & Circuit Breaking**: Matches models to tasks based on inherent strengths, automatically avoids exhausted keys or flaky endpoints, and redirects traffic during high concurrency.
-- **Manual Pinning**: Users can lock specific AI services for critical conversations, tasks, or long-term workflows.
-
-#### 4. 🎨 Multimodal Media Generation
-- **Text-to-Image & Text-to-Video**: Integrates standard image endpoints (`/images/generations`) and multi-format video generation with asynchronous polling and automatic local storage.
-- **In-Chat Rendering & Streaming**: Directly renders generated images in the message stream; video playback supports seeking and scrubbing within authorized folders.
-
-#### 5. 🖥️ Desktop Control & Browser Automation
-- **Visual Desktop Execution**: Numbered overlay tags, OCR fallback, and target window management to drive native desktop applications.
-- **Browser Automation**: Full external Chrome / Edge integration for precise DOM navigation, rich text input, drag-and-drop, and authenticated sessions.
-- **Human-in-the-Loop Safety**: Irreversible or sensitive file/system actions require explicit user confirmation.
-
-#### 6. 📋 Task Workspaces & Evidence Verification
+### 6. 📋 Task Workspaces & Evidence Verification
 - **Dual Work Presence**: Real-time "Present" and "Working Together" dashboards for full task visibility.
-- **Multi-Agent Delegation**: Orchestrates multiple roles (Planner, Executor, Reviewer, Researcher) with serial and parallel pipelines.
 - **Verifiable Deliverables**: Insists on hard file evidence for goal completion rather than accepting unsubstantiated model self-claims.
 
 ---
 
-### 🛠️ Quick Start
+## 🛡️ License & Anti-Free-Riding Protection (AGPL-3.0)
 
-#### Prerequisites
+This project is licensed under the **[GNU Affero General Public License v3.0 (GNU AGPL-3.0)](LICENSE)**.
+
+```mermaid
+flowchart TD
+    subgraph Traditional["❌ Permissive License (MIT / BSD / Apache) Loophole"]
+        P_Original["Open Source Code"] --> P_Modify["Competitor / Big Tech modifies privately"]
+        P_Modify --> P_SaaS["Deploys as closed-source paid cloud SaaS"]
+        P_Result["🔴 Source withheld: Community & authors are free-rided"]
+        P_SaaS --> P_Result
+    end
+
+    subgraph AGPL["✅ GNU AGPL-3.0 Copyleft Protection (PISCES AI)"]
+        A_Original["PISCES AI Codebase (AGPL-3.0)"] --> A_Modify["Any entity modifies or extends the code"]
+        A_Modify --> A_Network["Section 13: Interacts with users over network / SaaS"]
+        A_Network --> A_Mandatory["🟢 Enforces mandatory copyleft disclosure"]
+        A_Mandatory --> A_Open["ALL derivative & server source code<br/>MUST be released to the public under AGPL-3.0!"]
+    end
+```
+
+### Key Protective Provisions:
+1. **Strong Copyleft**: Any modifications, derivative works, or integrations must also be open-sourced under the AGPL-3.0.
+2. **Closing the Cloud / SaaS Loophole (Section 13)**:
+   Unlike standard GPL, **AGPL-3.0 Section 13** explicitly mandates that anyone hosting a modified version as a network service (cloud SaaS, API wrapper, or remote service) **must provide the complete corresponding source code to all network users**.
+3. **Anti-Plagiarism & Reciprocal Contribution**:
+   Protects original research and engineering efforts against proprietary repackaging, ensuring that technological progress remains shared with the open-source community.
+
+---
+
+## 🛠️ Quick Start
+
+### Prerequisites
 - **Operating System**: Windows 10 / 11 (recommended) or macOS / Linux
 - **Node.js**: >= 18.0.0
 - **Package Manager**: npm
 
-#### Installation & Setup
+### Installation & Setup
 
 1. **Clone the repository**
    ```bash
@@ -212,45 +170,45 @@ PISCES AI is designed to carry out complex, multi-stage real-world workloads: de
 
 3. **Run in development mode**
    ```bash
-   # Launch Vite frontend
+   # Start Vite frontend
    npm run dev
 
-   # Launch desktop application (builds frontend & starts Electron)
+   # Build frontend and launch Electron desktop application
    npm run desktop
    ```
 
 4. **Launch via Windows script**
    - You can also double-click `启动 PISCES AI.cmd` in the project root.
 
-#### Build & Package
+### Build & Package
 ```bash
-# Type check and compile frontend
+# Type check and build frontend
 npm run build
 
-# Pack portable desktop binaries (Windows x64)
+# Package portable desktop application (Windows x64)
 npm run pack
 ```
 
-#### Run Tests
+### Run Tests
 ```bash
-# Execute test suite
+# Execute full test suite
 npm test
 ```
 
 ---
 
-### 📂 Repository Structure
+## 📂 Repository Structure
 
 ```text
-├── electron/               # Electron main process, assistant worker & automation engines
-│   ├── main.cjs            # Electron entry & lifecycle orchestration
+├── electron/               # Electron main process, worker thread & automation engines
+│   ├── main.cjs            # Electron entry point & lifecycle management
 │   ├── assistant-worker.cjs# Main worker thread & execution pipeline
 │   ├── desktop-agent.cjs   # Desktop automation, OCR & vision targeting
 │   ├── brain.cjs           # System prompts, tools assembly & agent roles
 │   ├── service-routing.cjs # Health checks & smart routing across AI providers
 │   └── ...
-├── src/                    # React 19 frontend workbench
-│   ├── App.tsx             # Root application component
+├── src/                    # Modern React 19 frontend workbench
+│   ├── App.tsx             # Root workbench container & view routing
 │   ├── Presence.tsx        # Presence & active work views
 │   ├── TaskWorkspace.tsx   # Multi-modal task workspaces
 │   ├── NewWorkForm.tsx     # Task dispatch & configuration modal
@@ -258,27 +216,21 @@ npm test
 ├── scripts/                # Smoke tests, icon generation & packaging utilities
 ├── tests/                  # Unit and integration test suites
 ├── package.json            # Package configuration and dependencies
-├── LICENSE                 # Full license text
-└── README.md               # Main bilingual documentation
+├── LICENSE                 # Full GNU AGPL-3.0 License text
+└── README.md               # Main documentation
 ```
 
 ---
 
-### ⚙️ Configuration
+## ⚙️ Configuration
 
 Open **Settings** (gear icon in the lower-left corner) after first launch:
-- **AI Services**: Configure provider base URLs, API keys, and model names; tag model specializations (Code, Text, Image, Video).
+- **AI Services**: Configure provider endpoints, API keys, and model names; tag model specializations (Code, Long-form reasoning, Image, Video).
 - **Core Connection**: Set memory core endpoint (default: `http://127.0.0.1:18789`).
 - **Native Abilities**: Grant or review permissions for desktop control, browser automation, clipboard, and file access.
 
 ---
 
-### 📄 License
+## 📄 License
 
-This project is licensed under the [CC BY-NC-ND 4.0](LICENSE) (Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International) License.
-
-- **Attribution (BY)**: You must give appropriate credit and provide a link to the original project.
-- **NonCommercial (NC)**: You may not use the material for commercial purposes.
-- **NoDerivatives (ND)**: If you remix, transform, or build upon the material, you may not distribute the modified material.
-
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **[GNU Affero General Public License v3.0 (GNU AGPL-3.0)](LICENSE)**. See the [LICENSE](LICENSE) file for the full text.
