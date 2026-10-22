@@ -22,6 +22,71 @@ It is purpose-built to tackle long-horizon, high-complexity tasks: decomposing m
 
 ---
 
+## 🚀 Why PISCES AI? (Our Core Advantages)
+
+Most AI assistants on the market today are either **sandboxed chat web interfaces** (prone to context amnesia and hallucinations), **narrow terminal coding bots** (blind to native desktop applications), or **ephemeral cloud agents** (easily rate-limited and locked into single vendors). 
+
+**PISCES AI breaks these limitations by introducing a self-evolving, multi-provider desktop cognitive system.**
+
+### 📊 Competitive Comparison Matrix
+
+| Capability / Dimension | Traditional Chatbots (ChatGPT / Claude Web) | Code-Only CLI Bots (Cursor / Devin / Aider) | Cloud Agent Frameworks (nanoMuse / AutoGPT) | 🏆 **PISCES AI Desktop Workbench** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Execution Environment** | Sandboxed Web chat only | Terminal / IDE repo only | Cloud VM / Docker container | **Full Native OS Desktop + Real External Browser (Chrome / Edge)** |
+| **Long-Term Memory & Growth** | Session-bound / Basic static facts | None (restarts every task) | Ephemeral vector DB | **Dedicated Local Memory Core with Active Domain Cognition & Learning** |
+| **Multi-Provider AI Resilience** | Single vendor lock-in | Single model per turn | Basic manual fallback | **Intelligent Routing, Model Strength Auto-Detection & Concurrency Spillover** |
+| **Multimodal Synthesis & Media** | Hyperlinks / External viewers | No media tools | Third-party plugin dependencies | **Native Image & Video Generation with In-Chat Playback & Seeking** |
+| **Verification & Quality Gate** | Model self-claim (hallucination-prone) | Code compile / Test pass | Heuristic prompt checks | **Strict Physical File Evidence & Human-in-the-Loop Safeguards** |
+| **Open Source & Copyleft Defense** | Closed proprietary SaaS | Closed proprietary binaries | Permissive (freely exploited by big tech) | **GNU AGPL-3.0 (Strict Network Copyleft to prevent closed-source SaaS cloning)** |
+
+---
+
+### 💡 The 6 Pillar Advantages
+
+```mermaid
+flowchart TD
+    subgraph Legacy["⚠️ Limitations of Conventional AI Agents & Chat Wrappers"]
+        L1["Context Amnesia: Forgets past tasks and rules after session ends"]
+        L2["Sandboxed & Blind: Restricted to terminal text or simulated browsers"]
+        L3["Single-Point Failure: Locks into 1 API provider; breaks on rate-limits"]
+        L4["Unverified Hallucinations: Claims task done without physical evidence"]
+    end
+
+    subgraph PISCES["💎 The PISCES AI Advantage: Autonomous Closed-Loop"]
+        P1["🧠 Memory Core: Lifelong retention of skills, rules & domain cognition"]
+        P2["🖥️ Dual Execution: Native OS desktop control (OCR/Tags) + Real Chrome/Edge"]
+        P3["⚡ Multi-Cloud Mesh: Smart routing, automatic failover & concurrency spillover"]
+        P4["🛡️ Mechanical Proof: Requires real file artifacts & test outputs to verify"]
+    end
+
+    Legacy -.->|"Overcome By"| PISCES
+```
+
+#### 1. 🧠 Persistent Memory Core & Autonomous Domain Cognition
+- **Lifelong Knowledge Retention**: A dedicated memory core (`D:\记忆体`) permanently preserves user personas, behavioral instructions, acquired skills, and cross-session constraints. Offline state automatically queues and resynchronizes seamlessly.
+- **Active Hypothesis-Driven Learning**: When assigned a task in an unfamiliar field (e.g., specialized accounting, new platform marketing), the core **actively evaluates its own knowledge depth**. Rather than hallucinating, it creates structured research plans, analyzes real samples, induces fundamental rules, and validates them through controlled experiments.
+
+#### 2. 🖥️ Native Desktop GUI & Real Browser Domination
+- **True Desktop Control**: Not confined to a terminal emulator. PISCES AI locates, focuses, and controls any native Windows software via numerical coordinate overlay tags, OCR fallback, and keyboard chords.
+- **External Browser Mastery**: Directly commands external Chrome and Edge instances, maintaining user logins, cookies, rich text editors, drag-and-drop interactions, and file upload/download pipelines.
+
+#### 3. ⚡ Multi-Provider Intelligent Routing & Zero-Downtime Resilience
+- **Model Strength Auto-Recognition**: Recognizes what each configured AI service is best at from model metadata (deep reasoning, high-speed lookup, coding, multimodal vision) without requiring manual tagging.
+- **Fault Tolerance & Dynamic Spillover**: Continuously measures provider latency and error patterns. A failing or credit-exhausted key is dynamically backed off, and traffic seamlessly spills over to secondary endpoints when default concurrency limits are reached.
+
+#### 4. 🛡️ Mechanically Verifiable Deliverables (Zero Hallucinations Accepted)
+- **Proof of Work**: PISCES AI fundamentally refuses to accept verbal model claims like *"I have updated your spreadsheet"* without mechanical validation.
+- **Evidence-Based Acceptance**: Completion requires physical file system proof, SHA-256 checksums, and executable test receipts before settling any workflow.
+
+#### 5. 🎨 Integrated Multimodal Image & Video Generation
+- **Native Generation Tooling**: Built-in support for OpenAI image generation and multi-format video synthesis engines (OpenAI Video, Volcano Ark, SiliconFlow, MiniMax) with automatic progress polling and local storage.
+- **Direct In-Chat Playback**: Generated images render immediately in conversation flows; generated videos stream directly with seeking and timeline scrubbing inside the conversation interface.
+
+#### 6. 🔒 Enterprise Human-in-the-Loop Safeguards
+- **Transparent Approvals**: Irreversible or high-risk operations (such as destructive file edits, critical system reconfigurations, or billable batch media generations) pause automatically for human confirmation.
+
+---
+
 ## 🏛️ System Architecture
 
 ```mermaid
@@ -66,19 +131,7 @@ flowchart TD
 
 ---
 
-## ✨ Key Features
-
-### 1. 🧠 Memory Core & Long-Term Retention
-- **Dedicated Persistence**: User preferences, skill assets, behavior guidelines, interaction histories, and cross-session mandates are managed by a linked memory core.
-- **Resilient Offline Queue**: Operations safely queue locally when disconnected, seamlessly synchronizing upon reconnection.
-
-### 2. 🧭 Autonomous Domain Cognition
-- **Self-Assessed Competence**: Before executing unfamiliar workflows, the core evaluates its knowledge depth in the relevant discipline.
-- **Hypothesis-Driven Induction**: Formulates targeted learning plans, extracts sample patterns, conducts controlled tests, and consolidates verified rules into the memory core.
-
-### 3. ⚡ Multi-Provider AI Routing & Resilience
-- **Model Specialization Routing**: Intelligently routes tasks according to model strengths (coding, complex reasoning, multimodal parsing).
-- **Circuit Breakers & Spillover**: Automatically avoids degraded or credit-exhausted endpoints, spilling over to secondary providers when default limits are reached.
+## ⚡ Multi-Service Dynamic Routing Workflow
 
 ```mermaid
 flowchart LR
@@ -103,18 +156,6 @@ flowchart LR
     ResultCheck -- Failure/Timeout --> Penalty["Apply Failure Penalty &<br/>Trigger Automatic Failover"]
     Penalty --> HealthCheck
 ```
-
-### 4. 🎨 Multimodal Media Generation
-- **Text-to-Image & Text-to-Video**: Integrates OpenAI image endpoints and major video synthesis providers (OpenAI Video, Volcano Ark, SiliconFlow, MiniMax) with background polling and automatic local storage.
-- **In-Chat Rendering & Video Scrubbing**: Inline image display and draggable video playback within authorized paths.
-
-### 5. 🖥️ Desktop Control & Browser Automation
-- **Visual Desktop Execution**: Numbered overlay tags, OCR fallback, and window targeting to drive native software with mandatory human-in-the-loop approvals for sensitive operations.
-- **External Browser Automation**: Full Chrome / Edge integration for precise DOM navigation, rich text input, drag-and-drop, and session persistence.
-
-### 6. 📋 Task Workspaces & Evidence Verification
-- **Dual Work Presence**: Real-time "Present" and "Working Together" dashboards for full task visibility.
-- **Verifiable Deliverables**: Insists on hard file evidence for goal completion rather than accepting unsubstantiated model self-claims.
 
 ---
 
