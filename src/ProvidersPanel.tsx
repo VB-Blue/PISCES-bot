@@ -1,7 +1,7 @@
 import { t } from './i18n'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowClockwise, CheckCircle, Plus, Star, Trash, WarningCircle } from '@phosphor-icons/react'
-import type { AgentRole, ProviderDraft, ProviderInsight, ProviderStore, ServiceHealth, Strength } from './types'
+import type { AgentRole, ProviderDraft, ProviderInsight, ProviderStore, ServiceHealth, ServiceKind, Strength } from './types'
 import { Badge, Toggle, cleanError } from './ui'
 
 const presets = [
@@ -13,6 +13,19 @@ const presets = [
   { name: 'OpenRouter', endpoint: 'https://openrouter.ai/api/v1', model: '', strengths: [] as Strength[] },
   { name: 'Ollama 本机', endpoint: 'http://127.0.0.1:11434/v1', model: '', strengths: ['cheap'] as Strength[] },
 ]
+// Generation services: endpoints of common providers; fill the model from the provider's list.
+const generationPresets: { kind: ServiceKind; protocol: string; name: string; endpoint: string; model: string }[] = [
+  { kind: 'image', protocol: 'openai', name: 'OpenAI 图片', endpoint: 'https://api.openai.com/v1', model: 'gpt-image-1' },
+  { kind: 'image', protocol: 'openai', name: '硅基流动 图片', endpoint: 'https://api.siliconflow.cn/v1', model: '' },
+  { kind: 'image', protocol: 'openai', name: '火山方舟 图片', endpoint: 'https://ark.cn-beijing.volces.com/api/v3', model: '' },
+  { kind: 'video', protocol: 'openai', name: 'OpenAI 视频', endpoint: 'https://api.openai.com/v1', model: 'sora-2' },
+  { kind: 'video', protocol: 'ark', name: '火山方舟 视频', endpoint: 'https://ark.cn-beijing.volces.com/api/v3', model: '' },
+  { kind: 'video', protocol: 'siliconflow', name: '硅基流动 视频', endpoint: 'https://api.siliconflow.cn/v1', model: '' },
+  { kind: 'video', protocol: 'minimax', name: 'MiniMax 视频', endpoint: 'https://api.minimaxi.com/v1', model: '' },
+]
+const kindLabels: Record<ServiceKind, string> = { chat: '对话与任务', image: '图片生成', video: '视频生成' }
+const protocolLabels: Record<string, string> = { openai: 'OpenAI 视频接口（/videos）', ark: '火山方舟（内容生成任务）', siliconflow: '硅基流动（/video/submit）', minimax: 'MiniMax（/video_generation）' }
+const kindOf = (item?: { kind?: ServiceKind }) => item?.kind || 'chat'
 const strengthLabels: Record<Strength, string> = { strong: '强推理', fast: '速度快', cheap: '便宜', vision: '能看图', code: '擅长代码', long: '长文本' }
 const roleRows: { role: AgentRole; title: string; text: string }[] = [
   { role: 'researcher', title: '资料员', text: '联网查资料、核实事实' },
@@ -70,7 +83,7 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
     const id = crypto.randomUUID()
     let name = preset?.name || '新服务'
     for (let n = 2; names.some(item => item.toLowerCase() === name.toLowerCase()); n++) name = (preset?.name || '新服务') + ' ' + n
-    const draft: ProviderDraft = { id, name, endpoint: preset?.endpoint || '', model: preset?.model || '', hasApiKey: false, strengths: preset?.strengths || [], note: '', maxConcurrent: 2, noFailover: false }
+    const draft: ProviderDraft = { kind: 'chat', protocol: 'openai', id, name, endpoint: preset?.endpoint || '', model: preset?.model || '', hasApiKey: false, strengths: preset?.strengths || [], note: '', maxConcurrent: 2, noFailover: false }
     setForm({ ...form, profiles: [...form.profiles, draft], defaultId: form.defaultId || id })
     setSelected(id)
   }
@@ -78,7 +91,7 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
     if (!current) return
     const profiles = form.profiles.filter(item => item.id !== current.id)
     const routes = Object.fromEntries(Object.entries(form.routes).filter(([, id]) => id !== current.id))
-    setForm({ ...form, profiles, routes, defaultId: form.defaultId === current.id ? (profiles[0]?.id || '') : form.defaultId })
+    setForm({ ...form, profiles, routes, defaultId: form.defaultId === current.id ? (profiles.find(item => kindOf(item) === 'chat')?.id || '') : form.defaultId })
     setSelected(profiles[0]?.id || '')
   }
   const test = async () => {
@@ -86,17 +99,26 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
     if (!window.memoryDesktop) return setResult({ ok: false, text: '网页预览不能测试连接，请使用桌面程序。' })
     setTesting(true); setResult(null)
     try {
-      const reply = await window.memoryDesktop.testAI({ endpoint: current.endpoint, model: current.model, apiKey: current.apiKey, profileId: current.hasApiKey && !current.clearApiKey ? current.id : undefined })
+      const reply = await window.memoryDesktop.testAI({ kind: kindOf(current), endpoint: current.endpoint, model: current.model, apiKey: current.apiKey, profileId: current.hasApiKey && !current.clearApiKey ? current.id : undefined })
       if (reply.models.length) { setModels(reply.models); setListing({ state: 'done', text: '这个服务提供 ' + reply.models.length + ' 个模型，点一下即可选用' }) } else if (reply.listError) setListing({ state: 'error', text: reply.listError })
+      if (reply.generation) { setResult({ ok: true, text: '连接成功。生成服务在第一次生成时验证模型，测试不会产生生成费用。' }); return }
       setResult({ ok: true, text: reply.modelChecked ? '连接成功，模型可以正常回复。' : '连接成功' + (reply.models.length ? `，服务提供 ${reply.models.length} 个模型。` : '。填写模型名称后可再测一次。') })
     } catch (failure) { setResult({ ok: false, text: cleanError(failure) }) } finally { setTesting(false) }
+  }
+  // A generation service never answers conversations, so it cannot stay the default.
+  const changeKind = (kind: ServiceKind) => {
+    if (!current) return
+    const profiles = form.profiles.map(item => item.id === current.id ? { ...item, kind, protocol: 'openai', ...(kind !== 'chat' ? { strengths: [] } : {}) } : item)
+    const defaultId = kind !== 'chat' && form.defaultId === current.id ? profiles.find(item => kindOf(item) === 'chat')?.id || '' : form.defaultId || (kind === 'chat' ? current.id : '')
+    const routes = kind === 'chat' ? form.routes : Object.fromEntries(Object.entries(form.routes).filter(([, id]) => id !== current.id))
+    setForm({ ...form, profiles, defaultId, routes }); setResult(null)
   }
   const toggleStrength = (tag: Strength) => patch({ strengths: current!.strengths.includes(tag) ? current!.strengths.filter(item => item !== tag) : [...current!.strengths, tag] })
 
   return <div className="providers">
     <div className="provider-tabs" role="tablist" aria-label={t("AI 服务")}>
       {form.profiles.map(item => <button type="button" role="tab" aria-selected={item.id === current?.id} key={item.id} className={item.id === current?.id ? 'active' : ''} onClick={() => setSelected(item.id)}>
-        {item.id === form.defaultId && <Star size={12} weight="fill" />}{item.name || t("未命名")}
+        {item.id === form.defaultId && <Star size={12} weight="fill" />}{item.name || t("未命名")}{kindOf(item) !== 'chat' && <small className="provider-kind">{t(kindLabels[kindOf(item)])}</small>}
       </button>)}
       <button type="button" className="provider-add" onClick={() => add()}><Plus size={13} />{t("添加服务")}</button>
     </div>
@@ -105,7 +127,13 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
       <div className="preset-row">{presets.map(item => <button type="button" key={item.name} onClick={() => add(item)}>{t(item.name)}</button>)}</div></div>}
 
     {current && <div className="provider-editor">
-      <div className="preset-row" aria-label={t("常用服务")}>{presets.map(item => <button type="button" key={item.name} className={current.endpoint === item.endpoint ? 'active' : ''} onClick={() => { patch({ endpoint: item.endpoint, model: item.model || current.model, strengths: current.strengths.length ? current.strengths : item.strengths }); setModels([]) }}>{t(item.name)}</button>)}</div>
+      <div className="settings-grid">
+        <label>{t("服务类型")}<select value={kindOf(current)} onChange={event => changeKind(event.target.value as ServiceKind)}>{(['chat', 'image', 'video'] as ServiceKind[]).map(kind => <option key={kind} value={kind}>{t(kindLabels[kind])}</option>)}</select></label>
+        {kindOf(current) === 'video' && <label>{t("请求格式")}<select value={current.protocol || 'openai'} onChange={event => patch({ protocol: event.target.value })}>{Object.keys(protocolLabels).map(key => <option key={key} value={key}>{t(protocolLabels[key])}</option>)}</select></label>}
+      </div>
+      {kindOf(current) !== 'chat' && <><p className="field-note">{t("生成服务只供“生成图片 / 生成视频”使用，不参与对话。每次生成前会先请你确认。")}</p>
+      <div className="preset-row" aria-label={t("常用生成服务")}>{generationPresets.filter(item => item.kind === kindOf(current)).map(item => <button type="button" key={item.name} className={current.endpoint === item.endpoint ? 'active' : ''} onClick={() => { patch({ endpoint: item.endpoint, protocol: item.protocol, model: item.model || current.model }); setModels([]) }}>{t(item.name)}</button>)}</div></>}
+      {kindOf(current) === 'chat' && <div className="preset-row" aria-label={t("常用服务")}>{presets.map(item => <button type="button" key={item.name} className={current.endpoint === item.endpoint ? 'active' : ''} onClick={() => { patch({ endpoint: item.endpoint, model: item.model || current.model, strengths: current.strengths.length ? current.strengths : item.strengths }); setModels([]) }}>{t(item.name)}</button>)}</div>}
       <div className="settings-grid">
         <label>{t("名称")}<input value={current.name} onChange={event => patch({ name: event.target.value })} placeholder={t("例如 DeepSeek")} autoComplete="off" /></label>
         <label>{t("模型名称")}<input list="provider-models" value={current.model} onChange={event => patch({ model: event.target.value })} placeholder={t("填写或从列表选择")} autoComplete="off" /><datalist id="provider-models">{models.map(item => <option key={item} value={item} />)}</datalist></label>
@@ -122,22 +150,22 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
       <label>{t("API 密钥")}<input type="password" value={current.apiKey || ''} onChange={event => patch({ apiKey: event.target.value, clearApiKey: false })} placeholder={current.hasApiKey && !current.clearApiKey ? t("已加密保存，留空保留") : t("本机服务可留空")} autoComplete="new-password" /></label>
       {current.hasApiKey && <label className="check-label"><input type="checkbox" checked={!!current.clearApiKey} onChange={event => patch({ clearApiKey: event.target.checked, apiKey: '' })} />{t("移除已保存的密钥")}</label>}
 
-      <div className="provider-tags" role="group" aria-label={t("擅长")}>
+      {kindOf(current) === 'chat' && <><div className="provider-tags" role="group" aria-label={t("擅长")}>
         <span>{t("擅长（帮助自动分配）")}</span>
         {(Object.keys(strengthLabels) as Strength[]).map(tag => <button type="button" key={tag} aria-pressed={current.strengths.includes(tag)} className={current.strengths.includes(tag) ? 'on' : ''} onClick={() => toggleStrength(tag)}>{t(strengthLabels[tag])}</button>)}
       </div>
       {current.strengths.length === 0 && inferred.length > 0 && <p className="field-note">{t("没有勾选时，按模型名自动识别为：")}{inferred.map(tag => t(strengthLabels[tag])).join('、')}</p>}
-      {health && insight && <p className="field-note">{healthText(health, insight.now)}</p>}
+      {health && insight && <p className="field-note">{healthText(health, insight.now)}</p>}</>}
       <label>{t("备注（会告诉主代理，帮助它分配任务）")}<input value={current.note} onChange={event => patch({ note: event.target.value })} placeholder={t("例如：中文写作好，价格低，限流较严")} autoComplete="off" /></label>
       <div className="settings-grid">
         <label>{t("此 API 的最大并发数")}<input inputMode="numeric" value={current.maxConcurrent} onChange={event => patch({ maxConcurrent: Math.max(1, Math.min(8, Number(event.target.value.replace(/[^0-9]/g, '')) || 1)) })} /></label>
-        <div className="provider-flags">
+        {kindOf(current) === 'chat' && <div className="provider-flags">
           <label className="check-label"><input type="checkbox" checked={!current.noFailover} onChange={event => patch({ noFailover: !event.target.checked })} />{t("参与自动切换（出错时可作为备用，也会收到对话内容）")}</label>
-        </div>
+        </div>}
       </div>
       <div className="test-row">
         <button type="button" className="button secondary" disabled={testing || !current.endpoint} onClick={() => void test()}>{testing ? t("正在测试…") : <><ArrowClockwise size={14} />{t("测试连接")}</>}</button>
-        <button type="button" className="button secondary" disabled={form.defaultId === current.id} onClick={() => setForm({ ...form, defaultId: current.id })}><Star size={14} />{form.defaultId === current.id ? t("当前默认") : t("设为默认")}</button>
+        {kindOf(current) === 'chat' && <button type="button" className="button secondary" disabled={form.defaultId === current.id} onClick={() => setForm({ ...form, defaultId: current.id })}><Star size={14} />{form.defaultId === current.id ? t("当前默认") : t("设为默认")}</button>}
         <button type="button" className="button secondary danger" onClick={remove}><Trash size={14} />{t("删除")}</button>
         {result && <span className={result.ok ? 'test-ok' : 'test-fail'} role="status">{result.ok ? <CheckCircle size={15} weight="fill" /> : <WarningCircle size={15} weight="fill" />}{t(result.text)}</span>}
       </div>
@@ -152,7 +180,7 @@ export function ProvidersPanel({ form, setForm }: { form: ProviderForm; setForm:
           <div><b>{t(row.title)}</b><small>{t(row.text)}</small></div>
           <select aria-label={t("{p0}使用的服务", { p0: t(row.title) })} value={form.routes[row.role] || ''} onChange={event => { const routes = { ...form.routes }; if (event.target.value) routes[row.role] = event.target.value; else delete routes[row.role]; setForm({ ...form, routes }) }}>
             <option value="">{t("自动")}</option>
-            {form.profiles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            {form.profiles.filter(item => kindOf(item) === 'chat').map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </div>)}
       </div>

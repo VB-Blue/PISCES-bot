@@ -14,6 +14,7 @@ const { buildDocx } = require('./docx-writer.cjs');
 const { extractDocument } = require('./attachments.cjs');
 const { classifyToolOutcome } = require('./tool-outcome.cjs');
 const { createHash, randomUUID: randomId } = require('node:crypto');
+const media = require('./media-generation.cjs');
 
 // The same report repeated within one turn reaches the core once.
 const requestId = (ctx, kind, parts) => kind + ':' + createHash('sha256').update(JSON.stringify([ctx?.turn || ctx?.session || '', parts])).digest('hex').slice(0, 40);
@@ -84,7 +85,9 @@ const definitions = [
   tool('save_requirements', '把用户明确要求长期遵守的写作或通用要求逐条保存，跨对话与重启保留完整原文。text 必须是本轮用户原话中的连续片段，不得概括、猜测或从网页提取。更新已有要求必须提供其 id 和 revision。停用仅在用户明确要求停止沿用该条时 enabled=false。', { rules: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'object', properties: { id: { type: 'string' }, revision: { type: 'integer' }, text: { type: 'string' }, domain: { type: 'string', enum: ['writing', 'all'] }, scope: { type: 'string', description: '用户原话明确指定的项目名或网站；所有写作适用时留空' }, enabled: { type: 'boolean' } }, required: ['text', 'domain'], additionalProperties: false } } }, ['rules']),
   tool('save_skill', '把这一轮里成功完成的软件操作保存成“软件技能”，下次同类任务用 run_skill 在本地直接回放（几乎不用模型调用，更快更稳）。用软件完成了一个以后可能重复的多步骤任务后调用。会变化的内容（要输入的文字、文件名、收件人等）声明成参数，example 填这次实际用的值。', { title: { type: 'string', description: '技能名，例如“记事本新建文档并保存到桌面”' }, trigger: { type: 'string', description: '什么情况下用' }, params: { type: 'array', items: { type: 'object', properties: { name: { type: 'string', description: '英文参数名，例如 content、filename' }, description: { type: 'string' }, example: { type: 'string', description: '这次实际用的值，必须和操作里输入的文字一致' } }, required: ['name', 'example'] } } }, ['title']),
   tool('run_skill', '在本地回放一个已保存的软件技能（见“相关记忆”里的技能编号）。每一步都会核对界面变化；某一步对不上时会停下，返回卡在哪一步和当前界面，你从那里接着手动完成。', { id: { type: 'string' }, params: { type: 'object', description: '技能参数，例如 {"content":"…","filename":"…"}' } }, ['id']),
-  tool('domain_knowledge', '查看记忆体对某个领域的认识：水平、已验证和待验证的规律、进行中的对照、当前学习计划。', { domain: { type: 'string', description: '领域名称，例如“Instagram 图片营销”' } }, ['domain']),
+  tool('generate_image', '用用户配置的图片生成服务生成图片，保存到本机“图片\\PISCES AI”，并在对话里显示。prompt 要具体写清主体、风格、构图、文字。会先请用户确认（会产生服务费用）。', { prompt: { type: 'string' }, size: { type: 'string', description: '例如 1024x1024、1024x1536；不填用服务默认' }, count: { type: 'integer', description: '张数 1～4' }, service: { type: 'string', description: '指定图片服务名称；不填自动选择' } }, ['prompt']),
+  tool('generate_video', '用用户配置的视频生成服务生成短视频，生成通常要几分钟；完成后保存到本机“视频\\PISCES AI”，并在对话里可以播放。可给一张本机图片作为首帧。会先请用户确认（会产生服务费用）。', { prompt: { type: 'string' }, duration: { type: 'integer', description: '秒数，按服务支持的值填写' }, size: { type: 'string', description: '分辨率或尺寸，例如 720p、1280x720' }, first_frame: { type: 'string', description: '作为首帧的本机图片路径（可选）' }, service: { type: 'string', description: '指定视频服务名称；不填自动选择' } }, ['prompt']),
+  tool('domain_knowledge','查看记忆体对某个领域的认识：水平、已验证和待验证的规律、进行中的对照、当前学习计划。', { domain: { type: 'string', description: '领域名称，例如“Instagram 图片营销”' } }, ['domain']),
   tool('record_observations', '把观察到的样本交给记忆体，由记忆体从数据里计算规律（你不要自己下结论）。每条样本记录可观察的特征和同一个效果指标，例如同行帖子的 {"features":{"has_person":true,"tone":"warm","caption_hook":"question"},"value":0.042}。特征用是/否、短类别或数字；一次最多 1000 条。', { domain: { type: 'string' }, source: { type: 'string', description: '样本来自哪里，例如“20 个同行账号最近 20 帖”' }, metric: { type: 'string', description: '效果指标名称，全批一致，例如“互动率”' }, records: { type: 'array', items: { type: 'object', properties: { features: { type: 'object' }, value: { type: 'number' }, ref: { type: 'string', description: '样本链接或编号' } }, required: ['features', 'value'] } } }, ['domain', 'metric', 'records']),
   tool('propose_principle', '把一条做法记成待检验的规律。用户亲口说的经验 source 填 owner；你自己的推测填 model，只会作为设想，不会被当成事实。', { domain: { type: 'string' }, statement: { type: 'string' }, source: { type: 'string', enum: ['owner', 'model'] } }, ['domain', 'statement', 'source']),
   tool('start_experiment', '登记一次对照实践：arms 先写照规律做的一组，再写对照组；够数后由记忆体判断规律在用户这里是否成立。', { domain: { type: 'string' }, hypothesis: { type: 'string' }, metric: { type: 'string' }, principle_id: { type: 'string', description: '要检验的规律编号（来自领域经验）' }, arms: { type: 'array', items: { type: 'string' } }, min_per_arm: { type: 'integer' } }, ['domain', 'hypothesis', 'metric', 'arms']),
@@ -377,7 +380,7 @@ function createTools({ memory, host, userDataDir, getPrefs, allowPrivateNetwork 
       const result = await host.editImage(await fs.readFile(source), MIME[ext], ops, format);
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, result.buffer);
-      return { path: target, width: result.width, height: result.height, bytes: result.buffer.length, applied: describeOps(ops), note: '已保存为新文件，原图未改动。' };
+      return { path: target, files: [target], width: result.width, height: result.height, bytes: result.buffer.length, applied: describeOps(ops), note: '已保存为新文件，原图未改动。' };
     },
     async find_app({ query = '' }, ctx) {
       const needle = String(query || '').trim().slice(0, 60);
@@ -597,6 +600,35 @@ function createTools({ memory, host, userDataDir, getPrefs, allowPrivateNetwork 
       if (!duplicate) ctx.onLearned?.({ type: 'playbook', id: playbook.id, title: playbook.title });
       return { saved: true, duplicate, id: playbook.id };
     },
+    async generate_image({ prompt, size, count = 1, service }, ctx) {
+      const chosen = generationService('image', service);
+      const text = String(prompt || '').trim();
+      if (text.length < 2) throw new Error('请写清楚要生成什么');
+      const n = Math.max(1, Math.min(4, Number(count) || 1));
+      await approve(ctx, { key: 'generate:' + chosen.id, title: '用图片生成服务生成图片', lines: ['服务：' + chosen.name + ' · ' + chosen.settings.model, '张数：' + n + (size ? '，尺寸：' + size : ''), '描述：' + text.slice(0, 300)], risk: 'low', label: '图片生成服务 ' + chosen.name });
+      const { images, revisedPrompt } = await media.generateImage({ service: chosen, prompt: text, size: size ? String(size).slice(0, 20) : '', count: n, signal: ctx.signal });
+      const dir = path.join(host.path('pictures'), 'PISCES AI');
+      const files = [];
+      for (const [index, image] of images.entries()) files.push(await saveMedia(dir, text, image.bytes, image.ext, images.length > 1 ? index + 1 : 0));
+      return { files, service: chosen.name, model: chosen.settings.model, ...(revisedPrompt ? { revised_prompt: String(revisedPrompt).slice(0, 500) } : {}), note: '图片已保存并会显示在对话里' };
+    },
+    async generate_video({ prompt, duration, size, first_frame, service }, ctx) {
+      const chosen = generationService('video', service);
+      const text = String(prompt || '').trim();
+      if (text.length < 2) throw new Error('请写清楚要生成什么');
+      let firstFrame = '';
+      if (first_frame) {
+        firstFrame = resolvePath(first_frame);
+        assertNotSensitive(firstFrame);
+        if (!inRoots(firstFrame)) await approve(ctx, { key: 'read:' + path.dirname(firstFrame).toLowerCase(), title: '读取首帧图片', lines: [firstFrame, '该位置不在已授权目录内'], risk: 'low', label: '文件夹 ' + path.dirname(firstFrame) });
+      }
+      await approve(ctx, { key: 'generate:' + chosen.id, title: '用视频生成服务生成视频', lines: ['服务：' + chosen.name + ' · ' + chosen.settings.model, (duration ? '时长：' + duration + ' 秒' : '时长：服务默认') + (size ? '，尺寸：' + size : ''), ...(firstFrame ? ['首帧：' + firstFrame] : []), '描述：' + text.slice(0, 300)], risk: 'low', label: '视频生成服务 ' + chosen.name });
+      const said = new Set();
+      const video = await media.generateVideo({ service: chosen, prompt: text, duration: Number.isInteger(duration) ? duration : undefined, size: size ? String(size).slice(0, 20) : '', firstFrame, signal: ctx.signal,
+        onStatus: ({ id, status, progress }) => { const label = '视频生成中（' + chosen.name + '）：' + status + (Number.isFinite(progress) ? ' ' + progress + '%' : ''); if (!said.has(label)) { said.add(label); ctx.progress?.({ phase: 'settled', operation: 'generate_video', label, ok: true, task: id }); } } });
+      const file = await saveMedia(path.join(host.path('videos'), 'PISCES AI'), text, video.bytes, video.ext, 0);
+      return { files: [file], service: chosen.name, model: chosen.settings.model, task_id: video.id, note: '视频已保存，可在对话里播放' };
+    },
     // Domain cognition lives in the core: these only report what was seen and done; the core draws the conclusions.
     async domain_knowledge({ domain }) {
       return cognition('/api/v1/cognition/domain', { domain: String(domain || '').slice(0, 60) });
@@ -622,6 +654,26 @@ function createTools({ memory, host, userDataDir, getPrefs, allowPrivateNetwork 
       return cognition('/api/v1/cognition/experiment/record', { request_id: requestId(ctx, 'result', [experiment_id, arm, value, ctx.callId || randomId()]), experiment_id: String(experiment_id || ''), arm: String(arm || ''), value: Number(value) });
     },
   };
+  // A generation service of the wanted kind: the named one, else the first configured.
+  function generationService(kind, name) {
+    const services = (host.generationServices?.() || []).filter(item => item.kind === kind);
+    const label = kind === 'image' ? '图片' : '视频';
+    if (!services.length) throw new Error('还没有配置' + label + '生成服务：到“设置 → AI 服务”添加一个，类型选“' + label + '生成”');
+    const wanted = String(name || '').trim().toLowerCase();
+    const chosen = wanted ? services.find(item => item.name.toLowerCase() === wanted || item.id === name) : services[0];
+    if (!chosen) throw new Error('没有名为「' + name + '」的' + label + '生成服务，可用：' + services.map(item => item.name).join('、'));
+    return chosen;
+  }
+  async function saveMedia(dir, prompt, bytes, ext, index) {
+    await fs.mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+    const slug = String(prompt).replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'media';
+    for (let attempt = 0; ; attempt++) {
+      const target = path.join(dir, stamp + '-' + slug + (index ? '-' + index : '') + (attempt ? '-' + attempt : '') + ext);
+      try { await fs.writeFile(target, bytes, { flag: 'wx' }); return target; }
+      catch (error) { if (error.code !== 'EEXIST' || attempt > 20) throw error; }
+    }
+  }
   async function cognition(route, body) {
     if (!memory.coreCall) throw new Error('记忆体未连接，无法使用领域认知');
     return memory.coreCall(route, body);
@@ -632,7 +684,7 @@ function createTools({ memory, host, userDataDir, getPrefs, allowPrivateNetwork 
     if (controlLayer?.names.includes(name)) return controlLayer.label(name, args);
     const short = value => String(value ?? '').slice(0, 60);
     return ({ find_app: '查找软件：' + short(args.query), zoom: '放大查看', update_plan: '更新计划（' + (Array.isArray(args.steps) ? args.steps.filter(item => item.status === 'done').length + '/' + args.steps.length : '') + '）', list_windows: '查看打开的窗口', screenshot: '截图：' + short(args.window), inspect_window: '读取控件：' + short(args.window), focus_window: '切换到：' + short(args.window), click: '点击 (' + Math.round(args.x) + ', ' + Math.round(args.y) + ')' + (args.double ? ' 双击' : ''), drag: '拖动', scroll: '滚动', press_keys: '按键：' + short(args.keys), type_text: '输入文字：' + short(args.text), uia_invoke: '点击控件 #' + args.id, uia_set_value: '设置控件 #' + args.id, get_environment: '读取环境信息', web_search: '联网搜索：' + short(searchText(args)), news_search: '搜索新闻：' + short(searchText(args)), fetch_url: '读取网页：' + short(args.url), list_dir: '查看文件夹：' + short(args.path), read_text: '读取文件：' + short(args.path), find_files: '查找文件：' + short(args.query), edit_image: '修图：' + short(args.path),
-      write_text: '写入文件：' + short(args.path), write_document: '生成 Word 文档：' + short(args.path), edit_text: '修改文件：' + short(args.path), search_text: '搜索内容：' + short(args.query), run_command: '执行命令：' + short(args.command), launch_app: '启动：' + short(args.target), open_url: '打开网址：' + short(args.url), remember: '记住：' + short(args.text), recall: '回忆：' + short(args.query), save_requirements: '保存长期要求', save_playbook: '保存经验：' + short(args.title), domain_knowledge: '查看领域认识：' + short(args.domain), record_observations: '交给记忆体分析样本：' + (Array.isArray(args.records) ? args.records.length : 0) + ' 条', propose_principle: '记下待检验的规律：' + short(args.statement), start_experiment: '登记对照实践：' + short(args.hypothesis), record_experiment_result: '记录实践结果：' + short(args.arm) + ' ' + short(args.value),save_skill: '保存软件技能：' + short(args.title), run_skill: '运行软件技能' })[name] || name;
+      write_text: '写入文件：' + short(args.path), write_document: '生成 Word 文档：' + short(args.path), edit_text: '修改文件：' + short(args.path), search_text: '搜索内容：' + short(args.query), run_command: '执行命令：' + short(args.command), launch_app: '启动：' + short(args.target), open_url: '打开网址：' + short(args.url), remember: '记住：' + short(args.text), recall: '回忆：' + short(args.query), save_requirements: '保存长期要求', save_playbook: '保存经验：' + short(args.title), generate_image: '生成图片：' + short(args.prompt), generate_video: '生成视频：' + short(args.prompt), domain_knowledge: '查看领域认识：' + short(args.domain), record_observations: '交给记忆体分析样本：' + (Array.isArray(args.records) ? args.records.length : 0) + ' 条', propose_principle: '记下待检验的规律：' + short(args.statement), start_experiment: '登记对照实践：' + short(args.hypothesis), record_experiment_result: '记录实践结果：' + short(args.arm) + ' ' + short(args.value),save_skill: '保存软件技能：' + short(args.title), run_skill: '运行软件技能' })[name] || name;
   }
 
   async function execute(name, args, ctx = {}) {

@@ -150,7 +150,7 @@ function createMcp({ dir, encrypt, decrypt, audit = () => {}, onChange = () => {
         const data = part.type === 'resource' ? part.resource?.blob : part.data;
         const mimeType = part.mimeType || part.resource?.mimeType || 'application/octet-stream';
         if (typeof data === 'string' && /^[A-Za-z0-9+/]*={0,2}$/.test(data) && data.length <= 8_000_000) {
-          const extension = ({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif', 'audio/mpeg': '.mp3', 'audio/wav': '.wav', 'application/pdf': '.pdf' })[mimeType] || '.bin';
+          const extension = ({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif', 'audio/mpeg': '.mp3', 'audio/wav': '.wav', 'video/mp4': '.mp4', 'video/webm': '.webm', 'application/pdf': '.pdf' })[mimeType] || '.bin';
           const mediaPath = path.join(dir, 'results', slug(item.id), randomUUID() + extension);
           await fs.writeFile(mediaPath, Buffer.from(data, 'base64'));
           parts.push({ type: part.type, mimeType, path: mediaPath, ...(part.resource?.uri ? { uri: part.resource.uri } : {}) });

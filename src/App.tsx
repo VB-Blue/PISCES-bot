@@ -129,6 +129,7 @@ export default function App() {
   activeRef.current = active.id
   const currentComposer = composers[active.id] || blankComposer()
   const input = active.draft || '', chatProfile = active.profile || ''
+  const chatServices = (providerStore?.profiles || []).filter(item => (item.kind || 'chat') === 'chat')
   const { attachments, multiAgent, desktopTarget } = currentComposer
   const busy = runningSessions.includes(active.id) || auxiliarySessions.includes(active.id)
   const anyBusy = runningSessions.length > 0 || auxiliarySessions.length > 0
@@ -346,7 +347,7 @@ export default function App() {
         if (step.phase === 'running') steps.push({ label: step.label!, status: 'running' })
         else {
           const index = steps.map(item => item.status === 'running' && item.label === step.label).lastIndexOf(true)
-          const settled = { label: step.label!, status: step.ok === false ? 'failed' as const : 'ok' as const, ...(step.error ? { error: step.error } : {}), ...(step.file ? { file: step.file } : {}) }
+          const settled = { label: step.label!, status: step.ok === false ? 'failed' as const : 'ok' as const, ...(step.error ? { error: step.error } : {}), ...(step.file ? { file: step.file } : {}), ...(step.files?.length ? { files: step.files } : {}) }
           if (index >= 0) steps[index] = settled; else steps.push(settled)
         }
         return { ...message, steps }
@@ -584,7 +585,7 @@ export default function App() {
     { id: 's-general', group: '设置', label: '界面语言与通用设置', icon: <Globe size={16} />, keywords: 'language locale general settings 语言 語言 English 中文', run: () => openSettings('general') },
     { id: 's-persona', group: '设置', label: '助手名字、头像与风格', icon: <Sparkle size={16} />, keywords: 'persona 人设 风格', run: () => openSettings('persona') },
     { id: 's-abilities', group: '设置', label: '本机能力与权限', icon: <ShieldWarning size={16} />, keywords: '权限 能力', run: () => openSettings('abilities') },
-    ...(providerStore && providerStore.profiles.length > 1 ? [{ id: 'svc-default', group: '本次对话使用的服务', label: '默认（' + (providerStore.profiles.find(item => item.id === providerStore.defaultId)?.name || '') + '）', icon: <Sparkle size={16} />, run: () => setChatProfile('') }, ...providerStore.profiles.filter(item => item.id !== providerStore.defaultId).map(item => ({ id: 'svc-' + item.id, group: '本次对话使用的服务', label: item.name, hint: item.model, icon: <Sparkle size={16} />, run: () => setChatProfile(item.id) }))] : []),
+    ...(providerStore && chatServices.length > 1 ? [{ id: 'svc-default', group: '本次对话使用的服务', label: '默认（' + (providerStore.profiles.find(item => item.id === providerStore.defaultId)?.name || '') + '）', icon: <Sparkle size={16} />, run: () => setChatProfile('') }, ...chatServices.filter(item => item.id !== providerStore.defaultId).map(item => ({ id: 'svc-' + item.id, group: '本次对话使用的服务', label: item.name, hint: item.model, icon: <Sparkle size={16} />, run: () => setChatProfile(item.id) }))] : []),
     ...jobCtl.jobs.filter(item => ['running', 'waiting', 'scheduled'].includes(item.status)).slice(0, 6).map(item => ({ id: 'job-' + item.id, group: '后台任务', label: item.title, hint: item.status === 'waiting' ? '等你确认' : item.status === 'running' ? '运行中' : '已安排', icon: <Lightning size={16} />, run: () => { setJobFocus(item.id); navigate('jobs') } })),
     ...workspace.sessions.slice(0, 12).map(item => ({ id: 'chat-' + item.id, group: '最近对话', label: item.title, icon: <ChatCircle size={16} />, run: () => selectSession(item) })),
   ]
@@ -681,9 +682,9 @@ export default function App() {
             <div>
               <IconButton label={t("选择文件或图片")} onClick={pickFiles} disabled={busy}><Paperclip size={19} /></IconButton>
               {mode === 'core' && <button type="button" className={'chip toggle-chip' + (multiAgent ? ' on' : '')} aria-pressed={multiAgent} disabled={busy} onClick={() => setMultiAgent(!multiAgent)} title={t("规划 / 执行 / 审阅：三个工作者依次协作，最多 8 次模型调用")}><UsersThree size={14} />{t("规划·执行·审阅")}</button>}
-              {(providerStore?.profiles.length ?? 0) > 1 && <select className="profile-picker" aria-label={t("本次对话使用的 AI 服务")} title={t("自动按任务能力选择服务，也可为这段对话指定服务")} value={providerStore!.profiles.some(item => item.id === chatProfile) ? chatProfile : ''} disabled={busy} onChange={event => setChatProfile(event.target.value)}>
+              {chatServices.length > 1 && <select className="profile-picker" aria-label={t("本次对话使用的 AI 服务")} title={t("自动按任务能力选择服务，也可为这段对话指定服务")} value={chatServices.some(item => item.id === chatProfile) ? chatProfile : ''} disabled={busy} onChange={event => setChatProfile(event.target.value)}>
                 <option value="">{t("自动：按任务能力分配")}</option>
-                {providerStore!.profiles.map(item => <option key={item.id} value={item.id}>{item.name} · {item.model}</option>)}
+                {chatServices.map(item => <option key={item.id} value={item.id}>{item.name} · {item.model}</option>)}
               </select>}
             </div>
             {busy ? <IconButton label={t("停止回复")} className="send-button" onClick={() => void stopReply()}><Square size={16} weight="fill" /></IconButton> : <button className="send-button" type="submit" title={t("发送消息")} aria-label={t("发送消息")} disabled={!input.trim() && attachments.length === 0}><ArrowUp size={19} weight="bold" /></button>}
