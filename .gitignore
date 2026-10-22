@@ -10,3 +10,11 @@ tests/fixtures/*.exe
 .env.*
 .DS_Store
 Thumbs.db
+
+# Internal acceptance records, verification reports and design proposals
+*验收*
+*方案*
+*.验收.*
+docs/internal/
+.docs_backup/
+archive/
